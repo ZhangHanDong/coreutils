@@ -193,11 +193,11 @@ invariants:
   - temps_empty_at_exit
 
 unknown_behavior:
-  fields: [id, status, question, impact, current_evidence, convergence_experiment, owner, due, release_disposition, validation_refs, platform_refs]
+  fields: [id, status, question, impact, current_evidence, convergence_experiment, owner, due, release_disposition, validation_refs, surface_refs]
   rows:
-    - [UB-01, open, concurrent_tree, index_mismatch, none, barrier, test-owner, R2, block_canary, [VAL-UB01], []]
-    - [UB-03, open, network_fs, intermediate_state, no_runner, fs_replay, release-owner, R4, exclude_platform, [VAL-UB03], [network_fs]]
-    - [UB-04, open, windows_path, identity_loss, unix_only, native_roundtrip, platform-owner, R3, block_that_platform, [VAL-UB04], [windows_path]]
+    - [UB-01, open, concurrent_tree, index_mismatch, none, barrier, test-owner, R2, block_canary, [VAL-UB01], [nondeterminism.concurrent_tree]]
+    - [UB-03, open, network_fs, intermediate_state, no_runner, fs_replay, release-owner, R4, exclude_platform, [VAL-UB03], [platform.network_fs]]
+    - [UB-04, open, windows_path, identity_loss, unix_only, native_roundtrip, platform-owner, R3, block_that_platform, [VAL-UB04], [platform.windows_path]]
 non_goals: [performance_parity, verbose_diagnostic_text, signal_termination, cross_fs_atomicity, crash_durability]
 
 validation:
@@ -222,7 +222,7 @@ verification_receipts: []
 decision: approved_for_implementation_only
 ```
 
-这是实现时契约：收据为空，decision 只能是 `approved_for_implementation_only`。真实 receipt 须带 version、commit、runner、环境、verdict、日志；解析仅证明结构。
+空 receipt 只批准实现；receipt 须带 version、commit、runner、环境、verdict、日志。解析仅证明结构。
 
 ## 完整工程案例
 
