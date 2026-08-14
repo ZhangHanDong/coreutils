@@ -1,98 +1,284 @@
 # 第 3 章：兼容性不是功能列表，而是行为契约
 
-> **定位**：本章把前两章的行为视角转成可执行的契约。前置依赖是五个观察面与 uutils 案例地图；输出是一份可供 Agent、测试者和审稿人共同使用的行为矩阵。
+> **定位**：把[第 1 章行为表面](ch01-behavior-reconstruction.md#七维行为表面)和[第 2 章证据地图](ch02-uutils-case.md#星形架构走查中心不是总管叶子不是孤岛)编译为七字段 Behavior Contract，供迁移、测试、平台、Agent 及[附录 B](../appendices/task-contract.md)复用。
 
-「实现所有选项」是一张功能列表，不是兼容性契约。它回答了「入口是否存在」，却没有回答「在什么条件下，产生什么可观察结果」。两个工具都接受 `--recursive`，不意味它们在符号链接、权限错误或中途失败时的语义相同。兼容性必须将输入条件与多个结果维度绑在一起。
+## 契约遗漏事故
 
-一份实用契约至少包含如下元组：
+合成事故 `manifest-copy SRC DST` 复制目录并输出成功路径；任务只写“递归复制、失败非零”。候选按文本行输出路径。Unix 目录含 `report-\xFF.csv`、合法 `report-�.csv` 和换行名称时，身份碰撞；复制与 code 正确，索引却错。
 
-\[
-C = (I, O, E, S, P, N)
-\]
+遗漏了字节、边界、顺序、重复、平台能力。指南要求保留 `OsStr`/`Path`（`CONTRIBUTING.md:178-187`），测试按字节断言无效 UTF-8 参数（`tests/by-util/test_basename.rs:139-159`）。[E2-RUST-SAFETY]
 
-其中 `I` 是输入和初始状态，`O` 是成功输出，`E` 是错误通道与退出状态，`S` 是文件系统或外部系统副作用，`P` 是平台/环境前提，`N` 是本切片明确不承诺的范围。第 1 章用五个观察面盘点行为；这里增加 `N` 形成六元组，用于把未承诺范围也纳入契约。`N` 很重要：没有它，测试中没出现的情况很容易被误读为「已经支持」。
+<!-- source: CONTRIBUTING.md -->
+<!-- source: tests/by-util/test_basename.rs -->
 
-## 从行为盘点到契约矩阵
+## 从五元组展开为七字段契约
 
-契约的第一个版本不应追求穷尽所有组合。更有效的做法是用风险分层：先覆盖高频主路径、高影响失败路径和已知历史差异，再用差分测试与生产观测扩展边界。对一个文件复制切片，可以从下表开始：
+第 1 章用 `B=(I,O,E,S,P)`，相邻旧文还见 `(I,O,E,S,P,N)`。本章规范为 `K=(I,O,X,S,E,P,U)`：错误拆为 `O.stderr/X`，前提拆为 `E/P/U`，`N` 迁为必填 `non_goals`；旧缩略引用由 Task 19 迁移。
 
-| 场景 | 初始状态/输入 | stdout | stderr/退出码 | 副作用 | 平台与范围 |
+| 字段 | 内容 | 可执行要求 |
+|---|---|---|
+| `I` | argv/stdin/前态 | 构造器、边界、快照 |
+| `O` | stdout/stderr | 通道、表示、比较器 |
+| `X` | code/signal/timeout | 精确状态 |
+| `S` | 外部状态转移 | before/after、提交与清理 |
+| `E` | cwd/locale/TZ/umask | 状态、治理记录 |
+| `P` | OS/FS/能力 | 矩阵、probe、skip 理由 |
+| `U` | 非确定性、未知 | 允许集合、账本 |
+
+七字段与 `non_goals` 是 E4 综合。[E4-CHANGE-PACKAGE] P1 在 uutils `0.4.0` 语境要求成功参考调用的候选也成功，code、stdout、文件系统一致，stderr 可更丰富（[arXiv:2608.07135 第 2 页](https://arxiv.org/abs/2608.07135)）。[E1-P1]
+
+## 什么叫“可执行”
+
+可执行字段须有可重建前提、可采集观察、允许集合和 pass/fail/unknown 判定器；人工审查也要有方法与负责人。
+
+`manifest-copy` 的最小矩阵先覆盖成功、失败、副作用和平台分支：
+
+| `case_id`／场景 | 输入与前态 | stdout | stderr／退出 | 副作用 | 环境／平台／非确定性 |
 |---|---|---|---|---|---|
-| 普通文件成功 | 源存在，目标不存在 | 默认无输出 | 空 / 0 | 目标字节与源一致 | 本切片的支持平台 |
-| 源不存在 | 路径不存在 | 无 | 诊断类别 / 非 0 | 不创建目标 | 错误文本可按平台归一化 |
-| 目标不可写 | 父目录或目标拒绝写入 | 无 | 权限类诊断 / 非 0 | 不应留下误导性完成文件 | Unix 权限语义 |
-| 中途 I/O 失败 | 读或写在过程中失败 | 无 | I/O 诊断 / 非 0 | 部分目标的处理策略被明确定义 | 需可控故障注入 |
-| 符号链接 | 源或目标为链接 | 由选项决定 | 由选项决定 | 跟随、保留或拒绝 | 未列选项明确排除 |
+| `BC-SUCCESS-01` 成功 | 两文件；无 `DST` | committed 路径 NUL 多重集合；可重排 | 空／`0` | 精确树；无临时文件 | 固定/Unix；`NC-DROP-RECORD-01` |
+| `BC-SUCCESS-FF` 字节路径 | 名称含 `FF` | 保留 `FF`；一文件一记录 | 空／`0` | 同名字节路径 | Unix；`NC-LOSSY-01` |
+| `BC-SRC-MISSING-FF` 缺源 | 含 `FF` 的源缺失 | 空 | 原始字节；类别、转义路径／`1` | 无 `DST`/临时文件 | 固定 locale；`NC-LOSSY-ERR-01` |
+| `BC-MIDREAD-01` 中途失败 | 第二文件故障 | 仅 committed；可重排 | `read_error`、转义路径／`1` | 首个完整；失败项/临时项无 | 固定故障；`NC-EARLY-RECORD-01` |
+| `BC-NOCAP-01` 缺能力 | probe=false | 空 | `unsupported`／`2` | 无 `DST`/临时文件 | `UB-04`；`NC-SKIP-AS-PASS-01` |
 
-这个矩阵的价值不只是指导测试。它还向 Agent 说明了不能随意改变的界面，向审稿人说明了应当寻找哪类反例，向发布负责人说明了哪些指标需要在 shadow/canary 阶段观察。[E4-CHANGE-PACKAGE]
+YAML 用 ID 闭合验证；第 8 章分配[测试层](../part3/ch08-test-layers.md)，第 9 章让[差分比较器](../part3/ch09-differential-testing.md)读取允许集合。
 
 ```mermaid
-flowchart TB
-    I["规范/手册/黑盒执行/历史测试"] --> B["行为盘点"]
-    B --> R{"风险分类"}
-    R -->|"高频"| M["契约矩阵"]
-    R -->|"高影响"| M
-    R -->|"已知差异"| M
-    M --> T["可执行检查"]
-    T --> X{"结果"}
-    X -->|"反例"| M
-    X -->|"通过"| E["变更证据包"]
-    O["生产观测"] -. "新边界" .-> B
+flowchart LR
+    B["Behavior Surface"] --> K["七字段 Contract"] --> V["Validation"]
+    V -->|"反例"| K
+    V -->|"未知"| U["Unknown Ledger"]
+    V -->|"真实收据"| C["Change Package"]
 ```
 
-## 错误是一等契约
+## stdout、stderr：先决定字节还是文本
 
-迁移中最常见的偏差之一，是主路径输出被仔细比较，失败却被简化为一个通用 `Err`。但 shell 和其他调用者会直接观察退出码，测试可能断言 stderr 类别，自动化可能依赖部分成功后继续处理还是立即终止。uutils 的共享错误模型将 utility 结果、退出码和错误上下文连接起来，说明 Rust 内部错误传播与 CLI 外部语义之间需要显式桥接。[E2-ERROR-MODEL] [E2-ERROR-COMPAT]
+管道运送字节，解码是测试选择。固定 `CmdResult` 以 `Vec<u8>` 保存两通道（`tests/uutests/src/lib/util.rs:119-159`），访问在 `365-430`，字节断言在 `580-588,655-676`。本例 stdout 为 NUL 记录；stderr 仍存原始字节，`diag_path` 比较类别与路径：ASCII 原样、反斜线 `\\`、其余 `\xNN`。`BC-SRC-MISSING-FF` 覆盖非 UTF-8 错误路径。比较器 enum 见约束表，属 E4。[E4-CHANGE-PACKAGE]
 
-<!-- source: src/uucore/src/lib/mods/error.rs -->
+## 路径与编码：不要把显示形式当身份
 
-契约不一定要锁死所有字符级错误文本。如果文本受 locale、操作系统或底层库影响，可以将它分成不同强度：退出码完全相等；错误通道必须相同；诊断必须属于同一语义类别；只在环境固定时要求字节级相等。这比简单的「忽略 stderr」更严格，也比在所有平台上强求字节完全一致更可执行。
+路径身份与诊断显示须分开；Unix 用字节，Windows 用原生表示。[E2-RUST-SAFETY] lossy、`trim()`、Unicode 排序、去重均设负控。
 
-## 契约必须显式处理副作用与原子性
+## 退出状态与错误兼容
 
-对文件工具，只比较输出远远不够。一个失败命令可能返回正确的非零退出码，却留下一个被截断的目标文件；一个成功命令可能字节正确，却丢失权限或时间戳。因此，契约应在执行前后采集受影响资源的状态快照，并对「成功后必须存在」、「失败后必须不存在」、「允许部分结果」作出明确区分。
+“失败非零”过弱。固定错误模块桥接 `UResult/UError` 与退出码（`src/uucore/src/lib/mods/error.rs:5-32,65-103`）[E2-ERROR-MODEL]，`UIoError` 做窄诊断规范化（`408-506`）[E2-ERROR-COMPAT]。这不证明各 utility 共用码表；signals 是本例非目标。
 
-原子性也不是一个简单布尔值。进程之外的观察者在什么时点能看到新状态？信号到来时中间文件如何处理？跨文件系统移动时是否从 rename 退化为复制与删除？这些都应在精确切片中定义，而不是在「支持 mv」的功能勾选项下被隐藏。
+## 文件系统副作用：比较状态转移，不只比较文件内容
 
-## 平台差异：分支契约，不是随机豁免
+递归快照覆盖 `DST/**` 与本次创建的同级临时文件。字段取 `required|ignored|not_applicable`：路径、类型、摘要、临时文件、Unix mode 必查；owner/time/xattrs 忽略，无链接夹具的链接不适用；后两态必须写理由。
 
-Rust 提供跨平台抽象，但不会消除文件系统、权限、字节路径、信号和系统调用的差异。行为契约应将平台写成前提：在 Unix 上断言某类 mode bits；在 Windows 上断言对应的文件属性或明确不支持。如果某项行为只在特定内核或文件系统成立，契约应使用能力检测、跳过理由和目标环境记录，而不是将失败统统归为「CI 不稳定」。
+固定 `cp` 测试采元数据、写失败、通道失败和目标状态（`tests/by-util/test_cp.rs:74-145`），但不是本例规范。不变量是 committed 多重集合等于 stdout、失败文件无记录、退出无临时文件；不覆盖跨 FS 或断电原子性。
 
-好的平台契约会让变更更小。通用语义留在共享层，系统调用与差异收敛到明确的平台模块，测试以能力而非模糊的 OS 名称决定预期。这使 Agent 无需在一个补丁中重写所有平台分支，审稿人也可以看出某项 `cfg` 是否真的对应了契约差异。
+## locale、timezone 与其他环境
 
-## 从契约到可执行证据
+`E/P/U` item 的五态及治理列见 YAML；fixed 有 value，matrix 有 values。[E4-CHANGE-PACKAGE] `date` 测试固定 `LC_ALL=C/TZ=UTC0`（`tests/by-util/test_date.rs:69-102`），只证明环境可进入夹具。本例另固定 cwd/umask，时钟不适用。
 
-行为契约不应只存在设计文档里。每一行高风险契约至少应对应一种机械验证：静态规则、单元测试、集成测试、差分样本、fuzz 属性、shadow 比对或 canary 指标。无法自动化的条目，应记录人工审查方法和负责人，而不是消失在「需要注意」之中。契约还应指向变更包：修改了哪些条目，证据来自何处，未覆盖哪些边界，上线后如何观测。
+## 平台是分支，不是豁免
 
-这使契约成为一个活的边界模型。当差分 fuzz 发现新反例时，团队首先判断差异是候选缺陷、参考缺陷、允许差异还是环境噪声；然后更新契约与永久回归。当生产环境出现事故时，事故不只产生一个修复补丁，还应产生一条新的契约边界和一个可重复的验证。可直接填写的字段见[附录 B：迁移 Task Contract 模板](../appendices/task-contract.md)。
+平台先写能力再写 OS；skip 不能变 pass，缺 runner 是 `unknown` 并引用 `UB-*`。跨平台、兼容、可靠、性能、测试虽并列 [E2-GOALS]，性能不能抵扣兼容失败。
 
-## 用契约驱动 Agent 的反例循环
+## 非确定性与 unknown-behavior 风险账本
 
-把契约交给 Agent 时，最差的用法是让它一次生成全部实现，再尝试修到测试通过。更稳定的用法是从矩阵中取一行，先要求 Agent 说明可观察点、证据来源和尚未确定的前提，然后只编写能使该行成立的最小测试与补丁。测试失败时，修正对象不一定是代码：也可能是契约忽略了平台条件，比较器将非确定文本当成了字节契约，或参考程序的行为并不符合项目决策。[E4-DISCOVER-LOOP]
+目录枚举只许重排，保留字节与重复；signals 进 `non_goals`。
 
-这种循环把「模型不确定性」从一个抽象风险转化为可观察工件：未确定的假设、失败的样本、改动后的矩阵行与仍未覆盖的范围。人类审稿人无需推测 Agent 的「思考」，只需判断这些工件是否支持补丁。
+| unknown ID／状态 | 未知问题／影响 | 当前证据 | 收敛实验 | 负责人／到期 | 发布处理／引用 |
+|---|---|---|---|---|---|
+| `UB-01`/`open` | 并发新增；索引不一致 | 无样本 | barrier | test-owner/R2 | `block_canary`；`U.concurrent_tree`/`VAL-UB01` |
+| `UB-03`/`open` | 网络 FS；中间态可见 | 无 runner | FS 重放 | release-owner/R4 | `exclude_platform`；`P.network_fs`/`VAL-UB03` |
+| `UB-04`/`open` | Windows 路径；身份失真 | Unix 不可外推 | 原生往返 | platform-owner/R3 | `block_that_platform`；`P.windows_path`/`VAL-UB04` |
+
+YAML 保存 impact/evidence/experiment/owner/due、发布处理与双向引用。[E4-CHANGE-PACKAGE]
+
+## 一次完整契约评审会议
+
+`BC-MANIFEST-007` 由行为、实现、测试、平台、发布负责人评审 45 分钟；Agent 只交草稿。输入为事故、证据、候选输出、账本。
+
+| 时间 | 争议／反例 | 会议裁决与产出 |
+|---|---|---|
+| 0–15 | intent 太宽；`FF`、换行、重复 | 限静态树；NUL 字节多重集合；闭合 `0/1/2`；性能、signal、跨 FS 列非目标 |
+| 15–35 | 提交点、平台、归一化 | 完成后才记录；只许重排；Windows/网络 FS 进账本；四类有损候选设负控 |
+| 35–45 | oracle 权威与发布 | 观察、规范、裁决分栏；字段绑定 validation；只批准实现，计划保持未运行或受 unknown 阻断 |
+
+产出为下方 schema；真实 receipt 才能进入[第 12 章 Change Package](../part4/ch12-change-package.md)。[E4-CHANGE-PACKAGE]
+
+## 可复用工件
+
+下面 YAML 可复制；矩阵 `fields` 必填且顺序固定，行宽、根键不符即拒绝。
+
+| 约束 | required／enum |
+|---|---|
+| 根 | `schema,id,version,intent,baseline,owners,input,output,exit_status,side_effects,environment,platform,nondeterminism,outcomes,invariants,unknown_behavior,non_goals,validation,negative_controls,verification_receipts,decision` |
+| 状态 | E/P/U=`fixed|matrix|inherited|not_applicable|unknown`；outcome=`success|failure|unsupported`；unknown=`open|bounded|resolved|accepted` |
+| 比较／发布 | comparator=`exact|multiset|diag_path|empty|snapshot`；disposition=`block_candidate|block_canary|block_that_platform|exclude_platform|monitor|accepted` |
+| validation | `fields` 固定为 `id,outcome_id,case_id,fixture,runner,locator,expected_verdict,status,contract_fields,unknown_refs`；verdict=`pass|fail|not_applicable`，status=`not_run|pass|fail|not_applicable|blocked_by_unknown` |
+
+约束为 E4 综合。[E4-CHANGE-PACKAGE]
+
+```yaml
+schema: behavior-contract/v1
+id: BC-MANIFEST-007
+version: 4
+intent: copy a static tree and emit lossless records for completed files
+baseline:
+  evidence: [E1-P1, E2-GOALS, E2-RUST-SAFETY, E2-ERROR-MODEL, E2-ERROR-COMPAT]
+  source_commit: d8bee62c1ddc227d5e4385d80bbf6d7dee266a41
+owners:
+  behavior: behavior-owner
+  test: test-owner
+  platform: platform-owner
+  release: release-owner
+
+input:
+  argv: [manifest-copy, SRC, DST]
+  stdin: closed
+  pre_state: {src_tree: static_during_run, dst: absent}
+  path_identity: native
+  edge_fixtures_hex: [7265706f72742dff2e637376, 7265706f72742defbfbd2e637376]
+
+output:
+  stdout: {representation: bytes, separator_hex: "00", comparator: multiset, duplicates: significant}
+  stderr: {representation: bytes, comparator: diag_path, escape: ascii_else_hex}
+
+exit_status:
+  success: 0
+  source_missing_or_mid_read_failure: 1
+  missing_capability: 2
+
+side_effects:
+  snapshot_scope: recursive_dst_and_run_owned_sibling_temps
+  snapshot_fields:
+    path_set: &req {state: required}
+    path_type: *req
+    content_hash: *req
+    mode: {<<: *req, platforms: [unix]}
+    temp_files: *req
+    owner: &ign {state: ignored, reason: outside_intent}
+    timestamps: *ign
+    xattrs: *ign
+    symlink_target: {state: not_applicable, reason: no_symlinks}
+
+environment:
+  fields: &epu [item, state, value, reason, evidence, owner, due, release_disposition, validation_refs, unknown_refs]
+  rows:
+    - [cwd, fixed, isolated_tempdir, controlled_fixture, contract_decision, test-owner, candidate, block_candidate, [V-SCHEMA], []]
+    - [locale, fixed, C, diagnostic_fixture, test_date_69_102, test-owner, candidate, block_candidate, [VAL-SRC-MISSING], []]
+    - [timezone, fixed, UTC0, reproducible_fixture, test_date_69_102, test-owner, candidate, block_candidate, [V-SCHEMA], []]
+    - [umask, fixed, "022", mode_fixture, contract_decision, test-owner, candidate, block_candidate, [VAL-SUCCESS], []]
+    - [clock, not_applicable, null, no_time_observation, contract_scope, behavior-owner, v4, accepted, [V-SCHEMA], []]
+
+platform:
+  fields: *epu
+  rows:
+    - [unix_path_bytes, matrix, [linux], edge_path_capability, test_basename_139_159, platform-owner, candidate, block_candidate, [VAL-SUCCESS-FF, VAL-NOCAP], []]
+    - [windows_path, unknown, null, runner_absent, unix_not_transferable, platform-owner, R3, block_that_platform, [VAL-UB04], [UB-04]]
+    - [network_fs, unknown, null, runner_absent, local_fs_only, release-owner, R4, exclude_platform, [VAL-UB03], [UB-03]]
+
+nondeterminism:
+  fields: *epu
+  rows:
+    - [enumeration_order, matrix, [any_order], fs_enumeration, contract_decision, test-owner, candidate, block_candidate, [VAL-SUCCESS, V-NC-DROP], []]
+    - [concurrent_tree, unknown, null, static_fixture, none, test-owner, R2, block_canary, [VAL-UB01], [UB-01]]
+
+outcomes:
+  fields: [outcome_id, case_id, status, stdout, stderr, exit, before, after]
+  rows:
+    - [O-SUCCESS, BC-SUCCESS-01, success, bytes_multiset_any_committed, bytes_empty, 0, src_static_dst_absent, dst_equal_temps_absent]
+    - [O-SRC-MISSING, BC-SRC-MISSING-FF, failure, bytes_multiset_any_empty, bytes_diag_path_not_found, 1, src_dst_absent, dst_temps_absent]
+    - [O-MIDREAD, BC-MIDREAD-01, failure, bytes_multiset_any_committed, bytes_diag_path_read_error, 1, second_faulted_dst_absent, first_committed_second_temps_absent]
+    - [O-NOCAP, BC-NOCAP-01, unsupported, bytes_multiset_any_empty, bytes_diag_path_unsupported, 2, probe_false_dst_absent, dst_temps_absent]
+
+invariants:
+  - committed_multiset_equals_stdout_multiset
+  - failed_has_no_record
+  - temps_empty_at_exit
+
+unknown_behavior:
+  fields: [id, status, question, impact, current_evidence, convergence_experiment, owner, due, release_disposition, validation_refs, platform_refs]
+  rows:
+    - [UB-01, open, concurrent_tree, index_mismatch, none, barrier, test-owner, R2, block_canary, [VAL-UB01], []]
+    - [UB-03, open, network_fs, intermediate_state, no_runner, fs_replay, release-owner, R4, exclude_platform, [VAL-UB03], [network_fs]]
+    - [UB-04, open, windows_path, identity_loss, unix_only, native_roundtrip, platform-owner, R3, block_that_platform, [VAL-UB04], [windows_path]]
+non_goals: [performance_parity, verbose_diagnostic_text, signal_termination, cross_fs_atomicity, crash_durability]
+
+validation:
+  fields: [id, outcome_id, case_id, fixture, runner, locator, expected_verdict, status, contract_fields, unknown_refs]
+  rows:
+    - [V-SCHEMA, none, C-SCHEMA, yaml, schema, "v1:schema", pass, not_run, [E, P, U], []]
+    - [VAL-SUCCESS, O-SUCCESS, BC-SUCCESS-01, ascii2, contract, "plan:success", pass, not_run, [I, O, X, S, E, P, U], []]
+    - [VAL-SUCCESS-FF, O-SUCCESS, BC-SUCCESS-FF, names_ff, unix, "plan:success_ff", pass, not_run, [I, O, X, S, P], []]
+    - [VAL-SRC-MISSING, O-SRC-MISSING, BC-SRC-MISSING-FF, missing_ff, unix, "plan:missing_ff", pass, not_run, [I, O, X, S, E, P], []]
+    - [VAL-MIDREAD, O-MIDREAD, BC-MIDREAD-01, fault2, fault, "plan:midread", pass, not_run, [I, O, X, S, E, U], []]
+    - [VAL-NOCAP, O-NOCAP, BC-NOCAP-01, no_cap, contract, "plan:nocap", pass, not_run, [I, O, X, S, P], [UB-04]]
+    - [VAL-UB01, none, C-UB01, barrier, fault, "plan:concurrent", pass, blocked_by_unknown, [U], [UB-01]]
+    - [VAL-UB03, none, C-UB03, netfs, unavailable, "plan:netfs", pass, blocked_by_unknown, [P, S], [UB-03]]
+    - [VAL-UB04, none, C-UB04, winpath, unavailable, "plan:windows", pass, blocked_by_unknown, [I, O, P], [UB-04]]
+    - [V-NC-DROP, O-SUCCESS, NC-DROP-RECORD-01, drop, contract, "plan:reject_drop", fail, not_run, [O, S, U], []]
+    - [V-NC-LOSSY, O-SUCCESS, NC-LOSSY-01, lossy, unix, "plan:reject_lossy", fail, not_run, [I, O, P], []]
+    - [V-NC-LOSSY-ERR, O-SRC-MISSING, NC-LOSSY-ERR-01, lossy_err, unix, "plan:reject_lossy_err", fail, not_run, [I, O, P], []]
+    - [V-NC-EARLY, O-MIDREAD, NC-EARLY-RECORD-01, early, fault, "plan:reject_early", fail, not_run, [O, S], []]
+    - [V-NC-SKIP, O-NOCAP, NC-SKIP-AS-PASS-01, no_runner, schema, "plan:reject_skip", fail, not_run, [P], [UB-04]]
+negative_controls: [NC-DROP-RECORD-01, NC-LOSSY-01, NC-LOSSY-ERR-01, NC-EARLY-RECORD-01, NC-SKIP-AS-PASS-01]
+verification_receipts: []
+decision: approved_for_implementation_only
+```
+
+这是实现时契约：收据为空，decision 只能是 `approved_for_implementation_only`。真实 receipt 须带 version、commit、runner、环境、verdict、日志；解析仅证明结构。
+
+## 完整工程案例
+
+工程链为“事故最小化→裁决→契约→验证”：`NC-LOSSY-01` 拒绝 lossy+换行，`NC-EARLY-RECORD-01` 拒绝提前记录，再跑四个 outcome。仅当 receipt 证明负控 fail、正例 pass、UB 已处置，包才从 Draft 进 Candidate。“完整”指链路闭合，不表示测试已执行或边界外行为已覆盖。
+
+## 反例
+
+旧实现不是绝对规范。若参考程序把绝对 cwd 写入 stderr，安全负责人可裁决只输出相对路径：保留通道、类别、退出码，并用负控禁止泄露。P1 对成功调用约束严格，却允许失败与 stderr 改进。[E1-P1] 因此“参考现象／规范／产品裁决”须分栏；性能或新特性也不能抵扣路径改写。[E2-GOALS]
 
 ## 模式提炼
 
-**六元组行为切片**：用 `(I, O, E, S, P, N)` 把一个可观察意图变成可验证契约。它要求团队能控制输入与初始状态，并明确非目标；当副作用、并发时序或平台前提无法被观测时，必须先扩展记录能力，不能靠缩小元组宣称通过。
+**七字段契约**编译 outcome 与 validation；**通道—表示—比较器**拒绝有损；**状态转移**绑定提交与清理；**Unknown 账本**绑定实验、责任、发布。
+
+## AI Coding 工作台
+
+工作台展示契约、证据、样本、比较器、反例、门禁、责任。它继承[第 4 章 Context Boundary](../part2/ch04-clean-room.md)：Agent 只能按 `BC-MANIFEST-007@v4` 生成实现与测试，不能扩张 normalization、把 unknown 改 pass 或批准发布；越界即停。这是 E4 综合。[E4-CHANGE-PACKAGE]
+
+## 能证明什么／不能证明什么
+
+| 能证明什么 | 不能证明什么 |
+|---|---|
+| P1 在论文语境列出成功、code、stdout、文件系统及 stderr 允许项。[E1-P1] | 失败、locale、平台、时序的通用标准。 |
+| 固定源码有错误—退出桥、窄诊断与字节测试能力。[E2-ERROR-MODEL] [E2-ERROR-COMPAT] | 所有 utility 同码表、stderr 字节相等或调用链无 lossy。 |
+| schema receipt 若 pass，证明根键、enum、引用与 YAML 结构合规。 | 期望正确、locator 存在或实现通过。 |
+| `verification_receipts: []` 表明它仍是实现时契约。 | 正例已 pass、负控已 fail 或包已 Verified。 |
+| 未来 receipt 只证明其 commit/runner/fixture/字段范围。 | Windows、网络 FS、并发、signals、断电、性能。 |
 
 ## 局限
 
-契约矩阵会带来维护成本，而且不可能穷尽所有输入与并发时序。如果团队把它当成一次性文档，它会很快与实现脱节。如果团队追求在写代码前枚举所有组合，又会陷入无限建模。本书建议以风险排序，用新反例逐步扩展，并对未知范围保持明确陈述。契约也不应阻止有意改善；当团队决定不保留某项旧行为时，应将它作为可见的版本化决策，而不是偷偷发生的偏差。
+契约不穷尽输入或生成 oracle；复杂系统仍需日志或仿真。变化须升版；差异、unknown 与上线由人批准。
 
 ## 实践清单
 
-- [ ] 用 `(I, O, E, S, P, N)` 描述一个最小迁移切片。
-- [ ] 同时编写成功、失败、副作用和平台分支条目。
-- [ ] 对错误文本决定字节级、语义类别或通道/退出码级别的比较强度。
-- [ ] 对副作用记录执行前后状态，并定义中途失败语义。
-- [ ] 为每条高风险契约绑定机械检查或明确的人工审查。
-- [ ] 将新发现的差异先分类，再更新契约、实现与回归。
+- [ ] 七字段、`non_goals`、通道、exit、路径和比较器是否闭合？
+- [ ] 四 outcome 是否覆盖 before/after 与 committed 不变量？
+- [ ] E/P/U、unknown、skip 是否有治理字段和双向引用？
+- [ ] validation、负控、receipt 与证明边界是否入包？
+
+## 练习
+
+- **练习一**：把“递归复制”编成七字段、四 outcome 与负控，拒绝“非零即可”。
+- **练习二**：用无效 UTF-8、换行、尾空格、重复击穿 lossy、trim、普通集合，再收窄 comparator。
+- **练习三**：五角色评审 locale/timezone 命令，产出两项 unknown、一次不保留旧行为的裁决；Agent 无投票权。
 
 ## 本章证据
 
-本章以论文对兼容性重实现的描述为案例背景 [E1-P1]，以仓库的兼容目标与错误模型为源码依据 [E2-GOALS] [E2-ERROR-MODEL] [E2-ERROR-COMPAT]，再将行为矩阵与变更证据包连接起来 [E4-CHANGE-PACKAGE]。矩阵中的复制场景是方法示例，不是对任何特定版本 `cp` 全部语义的完整声明。
+主证据为 P1 [E1-P1]、目标 [E2-GOALS]、路径 [E2-RUST-SAFETY]、错误—退出桥 [E2-ERROR-MODEL]、诊断 [E2-ERROR-COMPAT]；提交已核验。schema、enum、账本、评审、工作台属 E4 [E4-CHANGE-PACKAGE]，案例为合成。
+
+<!-- source: https://arxiv.org/abs/2608.07135 -->
+<!-- source: CONTRIBUTING.md -->
+<!-- source: src/uucore/src/lib/mods/error.rs -->
+<!-- source: tests/uutests/src/lib/util.rs -->
+<!-- source: tests/by-util/test_basename.rs -->
+<!-- source: tests/by-util/test_date.rs -->
+<!-- source: tests/by-util/test_cp.rs -->
 
 ### 版本演化说明
 
-论文基线为 **arXiv:2608.07135**；本地源码基线为 **d8bee62c1ddc227d5e4385d80bbf6d7dee266a41**；本章证据核验日期为 **2026-08-14**。行为契约必须随新反例和明示产品决策演化；基线仅说明本书引用的仓库事实，不将某个 commit 冻结为永久规范。
+论文 **arXiv:2608.07135** v1（uutils `0.4.0`）；源码 **d8bee62c1ddc227d5e4385d80bbf6d7dee266a41**（`0.10.0`），核验于 **2026-08-14**。复用须重验升版。
