@@ -10,7 +10,7 @@ tags: [chapter, rust, architecture]
 
 ## 约束
 
-- 正文为 4200-5400 个中文字符。
+- 正文为 13,000–15,000 个中文字符。
 - 使用 E1-ARCH、E2-WORKSPACE、E2-UUCORE、E2-MULTICALL、E2-ERROR-MODEL 与 E2-RUST-SAFETY。
 - Rust 能力描述必须包含前提与不能防御的语义错误。
 
@@ -40,6 +40,12 @@ tags: [chapter, rust, architecture]
   假设 正文讨论所有权与类型
   当 检查局限部分
   那么 明确逻辑、兼容性与竞态仍需其他验证
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch05_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

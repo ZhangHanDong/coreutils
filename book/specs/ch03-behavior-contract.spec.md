@@ -10,7 +10,7 @@ tags: [chapter, contract, compatibility]
 
 ## 约束
 
-- 正文为 4200-5300 个中文字符。
+- 正文为 12,000–14,000 个中文字符。
 - 使用 E1-P1、E2-GOALS、E2-ERROR-COMPAT 与 E4-CHANGE-PACKAGE。
 - 至少给出成功、失败、文件系统副作用和平台差异矩阵。
 
@@ -40,6 +40,12 @@ tags: [chapter, contract, compatibility]
   假设 声明仅写“功能兼容”
   当 套用本章检查表
   那么 它被判定为不可验证契约
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch03_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

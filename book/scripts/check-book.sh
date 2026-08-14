@@ -2,6 +2,8 @@
 set -eu
 
 BOOK_ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+CHAPTER_CHECK="$SCRIPT_DIR/check-chapter.sh"
 MODE=full
 PART_FILTER=
 
@@ -17,8 +19,6 @@ done
 
 SRC_DIR="$BOOK_ROOT/src"
 SUMMARY="$SRC_DIR/SUMMARY.md"
-MIN_CHARS=${BOOK_MIN_CHARS:-3500}
-MAX_CHARS=${BOOK_MAX_CHARS:-5500}
 
 fail() {
     echo "book quality error: $*" >&2
@@ -26,6 +26,7 @@ fail() {
 }
 
 [ -f "$SUMMARY" ] || fail "missing SUMMARY.md"
+[ -x "$CHAPTER_CHECK" ] || fail "missing executable chapter quality gate: $CHAPTER_CHECK"
 
 summary_targets() {
     sed -n 's/.*](\([^)]*\.md\)).*/\1/p' "$SUMMARY"
@@ -59,20 +60,7 @@ echo "$chapters" | while IFS= read -r target; do
         [ "$MODE" = draft ] && continue
         fail "missing SUMMARY target: $target"
     }
-    grep -F '> **定位**' "$file" >/dev/null || fail "missing positioning anchor: $target"
-    grep -F '```mermaid' "$file" >/dev/null || fail "missing Mermaid diagram: $target"
-    evidence_count=$(grep -Eo '\[E[1-4]-[A-Z0-9._-]+\]' "$file" | sort -u | wc -l | tr -d ' ')
-    [ "$evidence_count" -ge 3 ] || fail "fewer than 3 evidence references: $target"
-    grep -F '### 版本演化说明' "$file" >/dev/null || fail "missing version evolution note: $target"
-    grep -F '## 模式提炼' "$file" >/dev/null || fail "missing pattern extraction section: $target"
-    grep -F '## 局限' "$file" >/dev/null || fail "missing limitation section: $target"
-    grep -F '## 实践清单' "$file" >/dev/null || fail "missing actionable checklist: $target"
-    grep -F 'arXiv:2608.07135' "$file" >/dev/null || fail "missing paper baseline: $target"
-    grep -F 'd8bee62c1ddc227d5e4385d80bbf6d7dee266a41' "$file" >/dev/null || fail "missing source baseline: $target"
-    grep -F '2026-08-14' "$file" >/dev/null || fail "missing verification date: $target"
-    chars=$(wc -m < "$file" | tr -d ' ')
-    [ "$chars" -ge "$MIN_CHARS" ] || fail "chapter below character budget ($chars < $MIN_CHARS): $target"
-    [ "$chars" -le "$MAX_CHARS" ] || fail "chapter above character budget ($chars > $MAX_CHARS): $target"
+    BOOK_CHAPTER_SPEC_ROOT="$SCRIPT_DIR/../specs" "$CHAPTER_CHECK" "$file" >/dev/null
 done
 
 if grep -R -n -E '(^|[^A-Za-z])(TODO|TBD)([^A-Za-z]|$)|待补|占位文本' "$SRC_DIR" --include='*.md' >/tmp/ai-rust-book-placeholders.$$ 2>/dev/null; then

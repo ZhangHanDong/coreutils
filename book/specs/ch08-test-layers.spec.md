@@ -10,7 +10,7 @@ tags: [chapter, testing, integration]
 
 ## 约束
 
-- 正文为 4200-5400 个中文字符。
+- 正文为 12,000–14,000 个中文字符。
 - 使用 E1-TEST-STACK、E2-TEST-COMMANDS、E2-EXTERNAL-SUITES、E2-NO-TEST-NO-MERGE 与 E4-VERIFICATION-LADDER。
 - 论文中的测试数量只按论文基线陈述。
 
@@ -40,6 +40,12 @@ tags: [chapter, testing, integration]
   假设 一个外部套件用例从失败变为通过
   当 使用本章流程
   那么 还需增加本地 Rust 回归测试
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch08_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

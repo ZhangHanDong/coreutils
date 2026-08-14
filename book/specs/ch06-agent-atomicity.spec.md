@@ -10,7 +10,7 @@ tags: [chapter, ai-coding, change-scope]
 
 ## 约束
 
-- 正文为 3800-4900 个中文字符。
+- 正文为 10,000–12,000 个中文字符。
 - 使用 E2-AI-POLICY、E2-ATOMICITY、E2-NO-TEST-NO-MERGE 与 E4-ATOMICITY。
 - 区分机械移动、重构与行为修改。
 
@@ -40,6 +40,12 @@ tags: [chapter, ai-coding, change-scope]
   假设 diff 只有一行但改变行为
   当 检查 Change Package
   那么 仍要求回归测试与验证证据
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch06_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

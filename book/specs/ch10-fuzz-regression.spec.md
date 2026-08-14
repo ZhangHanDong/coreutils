@@ -10,7 +10,7 @@ tags: [chapter, fuzzing, regression]
 
 ## 约束
 
-- 正文为 4300-5500 个中文字符。
+- 正文为 12,000–14,000 个中文字符。
 - 使用 E1-DIFF-FUZZ、E2-UUFUZZ-COMPARE、E2-COMPAT-WORKFLOW、E2-NO-TEST-NO-MERGE 与 E4-DISCOVER-LOOP。
 - 区分崩溃 fuzz、差分 fuzz、性质测试和回归测试。
 
@@ -40,6 +40,12 @@ tags: [chapter, fuzzing, regression]
   假设 差异无法稳定复现
   当 应用本章准入条件
   那么 它进入隔离与观察而不是伪造确定性回归测试
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch10_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

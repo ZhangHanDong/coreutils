@@ -10,7 +10,7 @@ tags: [chapter, rollout, rollback]
 
 ## 约束
 
-- 正文为 4200-5300 个中文字符。
+- 正文为 12,000–14,000 个中文字符。
 - 使用 E1-OS-INTEGRATION、E1-LESSONS、E3-MIGRATION-DESIGN、E3-DATE-INCIDENT 与 E4-ROLLBACK。
 - 监控指标覆盖正确性、性能、故障率和回退信号。
 
@@ -40,6 +40,12 @@ tags: [chapter, rollout, rollback]
   假设 CI 全绿但无真实流量证据
   当 应用本章发布门禁
   那么 只能进入受限部署阶段
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch14_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

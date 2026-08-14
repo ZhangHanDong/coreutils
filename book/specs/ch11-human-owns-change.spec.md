@@ -10,7 +10,7 @@ tags: [chapter, governance, review]
 
 ## 约束
 
-- 正文为 3800-4900 个中文字符。
+- 正文为 10,000–12,000 个中文字符。
 - 使用 E2-AI-OWNERSHIP、E2-AI-POLICY、E2-NO-TEST-NO-MERGE 与 E4-CHANGE-PACKAGE。
 - 不把当前 AI policy 归入论文事实。
 
@@ -40,6 +40,12 @@ tags: [chapter, governance, review]
   假设 提交者不能解释关键实现
   当 应用人类门禁
   那么 Change Package 被退回而不是依赖测试绿灯豁免
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch11_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

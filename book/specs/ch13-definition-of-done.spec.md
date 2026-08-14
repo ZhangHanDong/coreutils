@@ -10,7 +10,7 @@ tags: [chapter, done, verification]
 
 ## 约束
 
-- 正文为 3900-5100 个中文字符。
+- 正文为 11,000–13,000 个中文字符。
 - 使用 E2-STATIC-GATES、E2-NO-TEST-NO-MERGE、E2-AI-OWNERSHIP、E4-CHANGE-PACKAGE 与 E4-VERIFICATION-LADDER。
 - 每个检查项说明适用条件，不要求无关项目机械照搬。
 
@@ -40,6 +40,12 @@ tags: [chapter, done, verification]
   假设 相关 fuzz target 未运行
   当 生成完成记录
   那么 该项标记为未验证而不是通过
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch13_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

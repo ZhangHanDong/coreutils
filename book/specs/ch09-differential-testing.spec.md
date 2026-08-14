@@ -10,7 +10,7 @@ tags: [chapter, differential-testing, oracle]
 
 ## 约束
 
-- 正文为 4400-5500 个中文字符。
+- 正文为 13,000–15,000 个中文字符。
 - 使用 E1-DIFF-FUZZ、E2-UUFUZZ-RUN、E2-UUFUZZ-COMPARE、E2-ERROR-COMPAT 与 E4-SEARCHER。
 - 明确 stdout、stderr、退出码和文件系统副作用的比较差异。
 
@@ -40,6 +40,12 @@ tags: [chapter, differential-testing, oracle]
   假设 旧实现与标准或多个实现冲突
   当 应用本章流程
   那么 差异不会被自动复制为目标行为
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch09_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

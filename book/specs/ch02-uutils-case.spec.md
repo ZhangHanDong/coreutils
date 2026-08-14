@@ -10,7 +10,7 @@ tags: [chapter, uutils, paper]
 
 ## 约束
 
-- 正文为 4000-5200 个中文字符。
+- 正文为 13,000–15,000 个中文字符。
 - 使用 E1-P1、E1-P2-P3、E1-ARCH、E1-TEST-STACK、E1-OS-INTEGRATION 与 E2-ORIENTATION。
 - 论文测量版本与当前源码版本分开陈述。
 
@@ -40,6 +40,12 @@ tags: [chapter, uutils, paper]
   假设 本章提到 Coding Agent
   当 检查其证据标签
   那么 相关判断标记为 E2 或 E4 而不是 E1
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch02_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

@@ -10,7 +10,7 @@ tags: [chapter, ubuntu, audit, counterexample]
 
 ## 约束
 
-- 正文为 4500-5500 个中文字符。
+- 正文为 14,000–16,000 个中文字符。
 - 使用 E1-OS-INTEGRATION、E3-MIGRATION-DESIGN、E3-DATE-INCIDENT、E3-AUDIT-UPDATE、E3-RELEASE-26.04 与 E3-KNOWN-RISKS。
 - 所有生产事件给出精确日期或版本，不把不同时点压成单一状态。
 
@@ -40,6 +40,12 @@ tags: [chapter, ubuntu, audit, counterexample]
   假设 章节总结迁移总体成功
   当 检查同一结论的限制条件
   那么 同时包含审计发现、已知风险和部分工具回退
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch15_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

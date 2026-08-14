@@ -10,7 +10,7 @@ tags: [chapter, pipeline, adoption]
 
 ## 约束
 
-- 正文为 4400-5500 个中文字符。
+- 正文为 13,000–15,000 个中文字符。
 - 使用 E1-LESSONS、E2-AI-POLICY、E2-COMPAT-WORKFLOW、E3-AUDIT-UPDATE、E4-PIPELINE 与 E4-ROLLBACK。
 - 至少包含一个完整阶段表和一张端到端 Mermaid 图。
 
@@ -40,6 +40,12 @@ tags: [chapter, pipeline, adoption]
   假设 项目风险较低且不使用遗留 oracle
   当 裁剪 pipeline
   那么 行为契约、人工责任和回退计划仍保留
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch16_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

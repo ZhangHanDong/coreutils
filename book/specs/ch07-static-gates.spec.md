@@ -10,7 +10,7 @@ tags: [chapter, rustc, clippy, supply-chain]
 
 ## 约束
 
-- 正文为 4200-5400 个中文字符。
+- 正文为 12,000–14,000 个中文字符。
 - 使用 E2-STATIC-GATES、E2-DENY、E2-LINTS、E2-WORKSPACE 与 E4-VERIFICATION-LADDER。
 - 不把编译通过写成行为兼容证明。
 
@@ -40,6 +40,12 @@ tags: [chapter, rustc, clippy, supply-chain]
   假设 Rust 程序构建成功
   当 套用本章判定
   那么 仍需行为测试与 oracle 验证
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch07_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 

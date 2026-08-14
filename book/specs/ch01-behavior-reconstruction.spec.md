@@ -10,7 +10,7 @@ tags: [chapter, methodology, behavior]
 
 ## 约束
 
-- 正文为 4000-5000 个中文字符，包含定位、Mermaid、局限、实践清单和版本演化说明。
+- 正文为 10,000–12,000 个中文字符，包含定位、Mermaid、完整工程案例、反例、可复用工件、三个练习、证明边界、局限、实践清单和版本演化说明。
 - 使用 E1-P1、E2-GOALS、E4-SEARCHER、E4-VERIFICATION-LADDER。
 - 明确 E4-SEARCHER 是本书提炼而非论文原结论。
 
@@ -41,6 +41,12 @@ tags: [chapter, methodology, behavior]
   假设 E4-SEARCHER 出现在正文
   当 事实审稿检查出处
   那么 文本明确标记其为本书提炼
+
+场景: 扩写结构可由独立章节门禁验证
+  测试: test_ch01_expansion_structure
+  假设 本章已达到批准字符预算
+  当 执行章节质量门禁
+  那么 本章包含工程案例、反例、可复用工件、三个练习和证明边界
 
 ## 排除范围
 
