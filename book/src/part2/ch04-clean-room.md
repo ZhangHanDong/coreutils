@@ -51,15 +51,15 @@ flowchart LR
 
 ## 一手规则走查：政策事实怎样变成控制
 
-固定源码基线 `d8bee62c1ddc227d5e4385d80bbf6d7dee266a41` 中，[`AGENTS.md:7–15`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L7-L15)先规定驱动 Agent 的人对输出负责并须阅读 diff，随后明确禁止读取、复制或派生禁止实现的代码、辅助结构、测试夹具和注释。[E2-CLEANROOM] 这条规则至少带来三个工程动作：允许列表不能只排除 `.c` 文件；测试与注释也属于来源对象；人工责任不能由 Agent 自报“我没读过”完成。
+固定源码基线 `d8bee62c1ddc227d5e4385d80bbf6d7dee266a41` 中，[`AGENTS.md:7–15`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L7-L15)先规定驱动 Agent 的人对输出负责并须阅读 diff，随后明确禁止读取、复制或派生禁止实现的代码、辅助结构、测试夹具和注释。[E2-AI-OWNERSHIP] [E2-CLEANROOM] 这条规则至少带来三个工程动作：允许列表不能只排除 `.c` 文件；测试与注释也属于来源对象；人工责任不能由 Agent 自报“我没读过”完成。
 
-同一文件的 [`AGENTS.md:17–23`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L17-L23)要求新行为或 bug 修复进入本地 Rust 测试，并以“No tests, no merge”收束。[E2-AI-POLICY] 这使 clean-room 与回归资产发生连接：允许的黑盒或外部套件发现差异后，修复不能只依赖外部材料长期存在，而要把经过来源裁决的行为固化到本项目拥有的测试中；测试本身也必须有来源记录。
+同一文件的 [`AGENTS.md:17–23`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L17-L23)要求新行为或 bug 修复进入本地 Rust 测试，并以“No tests, no merge”收束。[E2-NO-TEST-NO-MERGE] 这使 clean-room 与回归资产发生连接：允许的黑盒或外部套件发现差异后，修复不能只依赖外部材料长期存在，而要把经过来源裁决的行为固化到本项目拥有的测试中；测试本身也必须有来源记录。
 
 [`CONTRIBUTING.md:19–25`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L19-L25)把原始代码与禁止来源的链接同时排除，并说明可参考的其他许可实现仍需按其许可证判断。[E2-CLEANROOM] 这否定了“只要不复制文本，给 Agent 一个链接就没关系”的做法。许可 URL、问题报告中的粘贴片段、代码搜索摘要都应按内容而非载体分类。
 
 [`CONTRIBUTING.md:218–229`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L218-L229)进一步要求 AI 辅助贡献者理解、解释、证明每一行，警惕输出派生风险，并保持补丁小而聚焦。[E2-AI-POLICY] 这是项目当前规则，不是 arXiv 论文对 Agent 的实验结论。它给 manifest 增加了 `human_owner`、`explain_back`、`diff_scope` 和 `review_receipt` 字段；第 6 章会把“小而聚焦”编译为[原子任务](ch06-agent-atomicity.md#概念模型行为意图而不是文件数量)。
 
-固定提交的 [`CONTRIBUTING.md:128–133`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L128-L133)允许从用户手册理解行为，[`DEVELOPMENT.md:197–239`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/DEVELOPMENT.md#L197-L239)只记录外部套件的执行入口与前提。[E2-EXTERNAL-SUITES] 它们证明项目文档存在这些入口，不证明 Agent 获得了上下文访问权；访问仍由 manifest 决定。论文 P1 把成功调用的退出状态、stdout 与文件系统结果纳入兼容目标，说明黑盒采集需要跨越文本输出和外部状态。[E1-P1] 但 P1 没有提出 Context Manifest，也没有证明任何特定观察就是规范；观察仍须经过第 3 章的契约裁决。
+固定提交的 [`CONTRIBUTING.md:128–133`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L128-L133)允许从用户手册理解行为 [E2-CLEANROOM]；[`DEVELOPMENT.md:197–239`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/DEVELOPMENT.md#L197-L239)只记录外部套件的执行入口与前提。[E2-EXTERNAL-SUITES] 它们证明项目文档存在这些入口，不证明 Agent 获得了上下文访问权；访问仍由 manifest 决定。论文 P1 把成功调用的退出状态、stdout 与文件系统结果纳入兼容目标，说明黑盒采集需要跨越文本输出和外部状态。[E1-P1] 但 P1 没有提出 Context Manifest，也没有证明任何特定观察就是规范；观察仍须经过第 3 章的契约裁决。
 
 <!-- source: AGENTS.md -->
 <!-- source: CONTRIBUTING.md -->
@@ -110,10 +110,11 @@ flowchart LR
 
 ## 可复用工件
 
-下面的 **Context Manifest v1** 可直接复制。它是 E4 作者工件，必须由项目规则和专业审查校准。
+下面是执行期 **Context Manifest 摘要**；唯一完整模板见[附录 C](../appendices/context-permissions.md#可执行清单)，本段不能单独声明关闭。它是 E4 作者工件，必须由项目规则和专业审查校准。
 
 ```yaml
-schema: context-manifest/v1
+schema: context-manifest-execution/v1
+manifest_ref: CTX-MANIFEST-COPY-004@v1
 task_id: CM-MANIFEST-COPY-004
 behavior_contract: BC-MANIFEST-007@v4
 candidate_commit: d8bee62c1ddc227d5e4385d80bbf6d7dee266a41
@@ -146,23 +147,23 @@ tool_controls:
   cache: {namespace: cm-004-clean, ttl: task, close_action: purge}
   delegation: {inherit_manifest_hash: required, privilege_escalation: human_only}
 access_log:
-  - {at: 2026-08-14T09:00:00Z, tool: filesystem, locator: AGENTS.md, decision: allow, digest: sha256:...}
+  - {at: 2026-08-14T09:00:00Z, tool: filesystem, locator: AGENTS.md, decision: allow, digest: "sha256:..."}
   - {at: 2026-08-14T09:02:00Z, tool: negative_probe, locator: deny://reference-source/probe, decision: deny}
 decisions:
   - {id: D-01, subject: Q-01, owner: source-owner, verdict: reject, reason: origin_unresolved}
 artifacts:
-  - {id: contract, digest: sha256:..., clean_rebuild: true}
-  - {id: candidate, digest: sha256:..., clean_rebuild: true}
+  - {id: contract, digest: "sha256:...", clean_rebuild: true}
+  - {id: candidate, digest: "sha256:...", clean_rebuild: true}
 receipts:
   access_control: pass
   negative_probe: pass
   publication_reference_gate: pass
-  cache_purge: pass
+  cache_purge: pending
 remaining_unknowns: [model_training_provenance, human_unlogged_memory]
-state: closed
+state: active
 ```
 
-使用时有四条硬规则：`may_read` 必须写用途，不能用仓库根通配符逃避最小权限；`must_not_read` 同时进入文件、搜索、网络和缓存策略；所有派生产物有消费者边；`closed` 必须有缓存处理和人类签署。manifest 不记录模型隐式推理，也不应保存敏感内容全文；它记录的是来源决定、访问事实与产物关系。
+此例停在 `active`。使用时有四条硬规则：`may_read` 必须写用途，不能用仓库根通配符逃避最小权限；`must_not_read` 同时进入文件、搜索、网络和缓存策略；所有派生产物有消费者边；`closed` 必须按附录 C 补 declared/observed reconciliation、逐位置 purge ledger 与绑定对象哈希的人类签署。manifest 不记录模型隐式推理，也不应保存敏感内容全文；它记录的是来源决定、访问事实与产物关系。
 
 ## 模式提炼
 
@@ -195,12 +196,12 @@ state: closed
 
 | 能证明什么 | 不能证明什么 |
 |---|---|
-| 固定提交的项目规则明确禁止读取、复制和派生禁止实现材料，并要求人类拥有输出。[E2-CLEANROOM] [E2-AI-POLICY] | 这些项目规则本身不是某司法辖区的法律意见，也不证明工具执行过规则。 |
+| 固定提交的项目规则明确禁止读取、复制和派生禁止实现材料，并要求人类拥有输出。[E2-CLEANROOM] [E2-AI-OWNERSHIP] | 这些项目规则本身不是某司法辖区的法律意见，也不证明工具执行过规则。 |
 | allowlist、拒绝探针与访问日志若在声明工具范围内通过，可证明已记录请求按该策略处置。 | 未受审计工具、人工记忆、模型训练数据或审计系统缺陷没有引入信息。 |
 | publication reference gate 可证明成稿没有命中它扫描的路径和 URL 模式。 | 生成过程未读取禁止内容，或无引用文本一定独立产生。 |
 | 污染响应记录能证明已知消费者被识别、废弃并在新 namespace 重建。 | 未记录消费者不存在，或重建产物自动满足法律与行为要求。 |
 | 黑盒收据能证明特定输入、环境与观察字段下发生了某个现象。[E1-P1] | 该现象值得保留、其他输入相同，或参考实现是绝对规范。 |
-| 本地 Rust 回归能保存经过裁决的行为反例。[E2-EXTERNAL-SUITES] | 测试夹具来源天然合规、契约完备或生产风险已消失。 |
+| 本地 Rust 回归能保存经过裁决的行为反例。[E2-NO-TEST-NO-MERGE] | 测试夹具来源天然合规、契约完备或生产风险已消失。 |
 
 ## 局限
 
@@ -227,7 +228,7 @@ clean-room 工程控制降低来源不明和不可审计派生风险，不自动
 
 ## 本章证据
 
-本章四项主证据为 clean-room 项目规则 [E2-CLEANROOM]、AI 与测试责任 [E2-AI-POLICY]、外部行为入口 [E2-EXTERNAL-SUITES] 和论文成功调用观察面 [E1-P1]。三边界、四状态、Context Manifest、派生图与工作台属于作者工程提炼 [E4-CONTEXT-BOUNDARY]；合成案例不对应固定仓库事故。
+本章主证据为 clean-room 规则 [E2-CLEANROOM]、人类输出责任 [E2-AI-OWNERSHIP]、AI 贡献政策 [E2-AI-POLICY]、测试门禁 [E2-NO-TEST-NO-MERGE]、外部入口 [E2-EXTERNAL-SUITES] 与论文观察面 [E1-P1]。三边界、四状态、Context Manifest、派生图与工作台属于作者工程提炼 [E4-CONTEXT-BOUNDARY]；合成案例不对应固定仓库事故。
 
 ### 版本演化说明
 

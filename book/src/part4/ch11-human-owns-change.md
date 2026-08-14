@@ -1,6 +1,6 @@
 # 第 11 章：Human Owns the Change
 
-> **定位**：本章定义 AI Coding 迁移中不可外包的人类所有权。前置依赖是 Context Boundary、原子补丁和第 7–10 章的验证证据；输出是一个覆盖需求、来源、实现、测试、审查、发布与事故的责任矩阵和 Review Ownership Record。适用于准备提交、审查或批准 AI 辅助变更的人，而不是用来衡量某个人是否“亲手写了多少代码”。
+> **定位**：本章定义 AI Coding 迁移中不可外包的人类所有权。前置依赖是[Context Boundary](../part2/ch04-clean-room.md)、[原子补丁](../part2/ch06-agent-atomicity.md)和[第 7–10 章验证证据](../part3/ch07-static-gates.md)；输出是覆盖需求、来源、实现、测试、审查、发布与事故的责任矩阵和 Review Ownership Record。
 
 ## 问题现场：三次签字，一次无人能解释的变更
 

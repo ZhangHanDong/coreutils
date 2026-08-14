@@ -1,6 +1,6 @@
 # 第 15 章：Ubuntu 部署、安全审计与方法边界
 
-> **定位**：本章用 Ubuntu 25.10—26.04 的公开记录检验前述方法。前置依赖是阶段发布、生产反馈与回退；输出是一张按精确日期分层的事件线，以及对「Rust 重写」、「默认切换」、「安全」和「完成」之间边界的严格结论。
+> **定位**：本章用 Ubuntu 25.10—26.04 的公开记录检验[第 14 章阶段发布与回退](ch14-rollout-rollback.md)；输出是按精确日期分层的事件线及方法边界，再交给[第 16 章流水线](ch16-pipeline.md)形成闭环。
 
 生产案例的价值不是为某种技术站队，而是暴露仓库证据与默认系统之间的差距。如果只选择「Ubuntu 已默认使用 rust-coreutils」，容易得出「重写已经完成」的过度结论。如果只选择安全审计问题，又可能忽略上游与下游大量修复、将多数工具作为默认以及保留兼容回退的工程事实。成熟分析必须在时间线中同时保留成功和缺口。
 
@@ -42,9 +42,9 @@ timeline
                : 以官方 26.04 发行说明作为当前可核验口径
 ```
 
-2025 年 4 月 23 日的迁移设计从包管理角度说明了问题难度：`coreutils` 是 Essential 包，仅解包时就必须工作，切换期间不能有一刻使 `cp` 等文件消失。设计使用 provider 包、前置依赖、文件冲突/替换与保护性机制，并为 GNU 版保留路径。[E3-MIGRATION-DESIGN] 这证明「可回退」需要从包图和解包时序开始设计，而不是一条 Git revert 命令。
+2025 年 4 月 23 日的迁移设计从包管理角度说明了问题难度：`coreutils` 是 Essential 包，仅解包时就必须工作，切换期间不能有一刻使 `cp` 等文件消失。设计使用 provider 包、前置依赖、文件冲突/替换与保护性机制，并为 GNU 版保留路径。[E3-MIGRATION-DESIGN] 对这类 Essential-package 迁移，本书据此要求从包图和解包时序设计回退，而不是只给一条 Git revert；这是 E4 工程推论。
 
-2025 年 9 月 26 日发布的 [Ubuntu Foundations 说明](https://discourse.ubuntu.com/t/ubuntu-25-10-foundations-edition-what-s-coming-and-what-s-next/68147)是在发行前约两周写成的：页面称系统核心工具已由 rust-coreutils 包提供，版本为 0.2.2，同时明示“不一定完全兼容”，因此旧工具并存且可切换。它是发布前公开口径，不是 25.10 的发行事件。Ubuntu 的官方 release schedule 与发布公告把 25.10 正式发布日期记为 **2025 年 10 月 9 日**。把 9 月 26 日写成“25.10 发布日”会混淆计划/候选状态与已发行状态。
+2025 年 9 月 26 日发布的 [Ubuntu Foundations 说明](https://discourse.ubuntu.com/t/ubuntu-25-10-foundations-edition-what-s-coming-and-what-s-next/68147)是在发行前约两周写成的：页面称系统核心工具已由 rust-coreutils 包提供，版本为 0.2.2，同时明示“不一定完全兼容”，因此旧工具并存且可切换。它是发布前口径，不是发行事件；[release schedule](https://documentation.ubuntu.com/release-notes/25.10/schedule/) 与[发布公告](https://discourse.ubuntu.com/t/ubuntu-25-10-questing-quokka-released/69067)把正式发布日期记为 **2025 年 10 月 9 日**。混写两日会把候选状态误作已发行状态。
 
 2025 年 10 月 23 日的官方通知说明，一个当时已解决的 `date` 缺陷曾使部分 Ubuntu 25.10 系统无法自动检查更新，影响包括云部署、容器镜像、桌面和服务器安装；通知给出了不受影响的修复版本 `0.2.2-0ubuntu2.1` 或更高。[E3-DATE-INCIDENT] 这个事件的方法含义并非「Rust 不可用」，而是一个基础命令的小行为差异可以跨越调度器、包管理与多种系统形态扩散；生产反例必须快速变成回归与发布阈值。
 
@@ -72,7 +72,7 @@ timeline
 
 ## 「内存安全」与「系统安全」的边界
 
-Rust 的安全子集能阻止大量内存安全缺陷，这是重写基础软件的真实价值。Canonical 于 2026 年 4 月 10 日发布的 [26.04 安全文章](https://ubuntu.com/blog/ubuntu-26-04-lts-security-updates)把方向表述为：当 Rust 替代实现足够成熟时替换安全敏感组件，先在 interim release 验证，再在达到严格就绪条件后进入 LTS；文章同时说明传统工具继续用于兼容与回退。但外部审计发现和 TOCTOU 问题又说明，内存安全不能防止逻辑授权、文件系统竞态、错误权限语义或兼容性导致的安全影响。[E3-AUDIT-UPDATE]
+Rust 的安全子集能阻止大量内存安全缺陷，这是重写基础软件的真实价值。Canonical 于 2026 年 4 月 10 日发布的 [26.04 安全文章](https://ubuntu.com/blog/ubuntu-26-04-lts-security-updates)把方向表述为：当 Rust 替代实现足够成熟时替换安全敏感组件，先在 interim release 验证，再在达到严格就绪条件后进入 LTS；文章同时说明传统工具继续用于兼容与回退。审计更新直接证明当时仍有审计发现与 TOCTOU 问题，发行说明另列已知风险。[E3-AUDIT-UPDATE] [E3-KNOWN-RISKS] 本书由此在 E4 层要求继续审查逻辑授权、文件系统竞态、权限语义和兼容性安全影响；这些类别不是单一页面逐项证明的发现清单。
 
 因此安全结论应分层：语言层排除哪些 bug 类别；`unsafe`/FFI 边界是否局部且前提可审查；系统调用与文件操作是否可抗竞态；外部行为是否符合权限与数据安全契约；发布时是否保留安全回退。「Rust 实现」是第一层的强证据，不是最后一层的自动结论。
 
@@ -266,7 +266,7 @@ Ubuntu 是特定发行版、包管理与安全维护生态，其 Essential 包�
 
 ## 本章证据
 
-操作系统集成背景来自论文 [E1-OS-INTEGRATION]；生产事件来自 Ubuntu 迁移设计、`date` 事故、4 月 22 日审计更新、26.04 发行说明与已知风险 [E3-MIGRATION-DESIGN] [E3-DATE-INCIDENT] [E3-AUDIT-UPDATE] [E3-RELEASE-26.04] [E3-KNOWN-RISKS]。25.10 发布前状态与 26.04 安全方向分别直接链接至 Ubuntu 官方页面，不另增同义证据层。本章的分层安全结论是对这些时点事实的方法综合，不是对 Rust 或 uutils 的简单优劣投票。
+操作系统集成背景来自论文 [E1-OS-INTEGRATION]；生产事件主证据为迁移设计、`date` 事故、审计更新、发行说明与已知风险 [E3-MIGRATION-DESIGN] [E3-DATE-INCIDENT] [E3-AUDIT-UPDATE] [E3-RELEASE-26.04] [E3-KNOWN-RISKS]。25.10 状态/发行日与 26.04 安全方向由正文直接链接一手页面。本章的分层安全结论是 E4 综合，不是优劣投票。
 
 ### 版本演化说明
 

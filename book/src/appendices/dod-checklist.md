@@ -70,6 +70,10 @@ reason: "为什么当前无法验证"
 risk: "最坏影响与受影响范围"
 compensating_controls:
   - "额外监控或流量限制"
+approved_scope: "允许继续的 artifact/platform/cohort"
+excluded_scope: "仍被阻断的声明与流量"
+monitor: "具名指标与所有者"
+threshold: "触发撤销的精确条件"
 rollback: "触发条件与操作入口"
 owner: "承担风险的人类角色"
 approver: "有权批准该风险的人类角色"
@@ -77,6 +81,7 @@ expires_at: "明确日期或下一发布门"
 closure_evidence: "到期前需要补充的证据"
 verification_basis: "LimitedWithWaiver"
 human_decision: "Waive"
+lifecycle_state: "Proposed | Active | Closed | Revoked"
 ```
 
 豁免不能永久把未知变成已知。到期时只有三种合法结果：补齐证据并转为 `Pass`，发现问题转为 `Fail`，或由有权角色重新评估并创建新的限时决定。DoD 因而不是静态打勾表，而是迁移状态能否晋级的证据门。
@@ -107,11 +112,11 @@ L2 在 L1 之上证明候选变更、永久测试和人类责任形成一个可�
 |---|---|---|
 | 原子性 | 一个行为意图；机械与语义提交可分辨；diff 未越界 | 回第 6 章拆任务 |
 | red/green | 同一测试、fixture 与比较器在基线红、候选绿 | 回实现或测试层，不允许换 oracle 掩盖差异 |
-| Profile 并集 | 所有选中 Profile 的适用条目均 Pass/N/A | Fail 回修；Unverified 默认阻断 |
+| Profile 并集 | 所有选中实现 Profile 的适用条目均 Pass/N/A | Fail 回修；Unverified 默认阻断 |
 | 影响覆盖 | 直接/共享消费者、feature、target 和平台矩阵与风险相称 | 回第 5、7、8 章补覆盖 |
 | 独立评审 | 人类能解释实现、不变量、证据、未知项和 Git 回退 | 回第 12 章补包或拒绝 |
 
-L2 输出是不可拆分的 Change Package：契约、manifest 关闭/暂停状态、最小 diff、永久回归、运行账本、风险说明、评审决定与原子代码回退。`release_default` 可在 L2 被选中以提前准备要求，但生产观察尚未发生时，其运行项仍为 `Unverified`，所以只能说“代码可供候选产物构建”，不能说“发布完成”。
+L2 输出是不可拆分的 Change Package：契约、manifest 关闭/暂停状态、最小 diff、永久回归、运行账本、风险说明、评审决定与原子代码回退。`release_default` 不进入 L2 的 `selected_profiles`；预规划写入 `planned_profiles`。独立的 L3/release package 引用 L2，选择 `release_default` 并生成生产证据。
 
 ### L3 — Release Ready：可以晋级或维持默认
 
@@ -143,24 +148,25 @@ flowchart LR
 ```yaml
 dod_decision:
   task_id: "MIG-UTILITY-001"
-  change_package: "CP-MIG-UTILITY-001@sha256:..."
-  requested_level: "L1 | L2 | L3"
+  l2_change_package_ref: "CP-MIG-UTILITY-001@sha256:..."
+  release_package: "RP-MIG-UTILITY-001@sha256:..."
+  requested_level: "L3"
   profile_schema_ref: "chapter-13/profile-schema-v1"
   selected_profiles:
     - "local_behavior"
     - "safety_critical"
     - "release_default"
   evaluated_requirements:
-    - {id: "CONTRACT-01", status: "Pass", evidence: ["BC-001"], owner: "..."}
-    - {id: "SAFE-01", status: "Pass", evidence: ["RUN-SAFE-001"], owner: "..."}
+    - {id: "CONTRACT-01", status: "Pass", evidence: ["BC-001"], owner: "...", reviewed_at: "RFC3339"}
+    - {id: "SAFE-01", status: "Pass", evidence: ["RUN-SAFE-001"], owner: "...", reviewed_at: "RFC3339"}
   machine_evaluation:
     eligible_for_next_stage: true
     verification_basis: "Direct"
   human_decisions:
-    - {role: "authorized role", decision: "Approve", scope: "merge"}
-  authorized_transition: "merge"
+    - {role: "release owner", identity: "person/service identity", decision: "Approve", scope: "promote_next_cohort", object_hash: "sha256:...", reason: "L3 evidence accepted", decided_at: "RFC3339", signature_ref: "sig:..."}
+  authorized_transition: "promote_next_cohort"
   artifact_scope: "commit/artifact/config/cohort"
-  decided_by: ["behavior owner", "required specialist", "release owner if L3"]
+  decided_by: ["behavior owner", "required specialist", "release owner"]
   decided_at: "RFC3339"
   valid_until: "time or next baseline change"
   exceptions: []

@@ -105,7 +105,7 @@ Cost(g)=runtime(g) \times frequency(g) + queue(g) + diagnosis(g)
 
 **变更输入。** Atomic Change Card 只允许修改共享路径 helper 与两个平台测试；行为意图是“Windows 原生路径显示失败时保留错误而非变为空串”。因为触及共享层、平台 cfg 和错误语义，Static Gate Selector 风险为 high。
 
-**G1 格式。** `cargo fmt -- --check` 发现 Windows 分支缩进。Agent 可在任务内修复；这一层只减少 diff 噪声，收据写 `proof=format_conformance`，不能写“代码正确”。
+**G1 格式。** `cargo fmt --all -- --check` 发现 Windows 分支缩进。Agent 可在任务内修复；这一层只减少 diff 噪声，收据写 `proof=format_conformance`，不能写“代码正确”。
 
 **G2 局部 Linux check。** 默认 Linux 构建通过。Selector 明确把结果记为 `target=x86_64-unknown-linux-gnu, features=default`，Windows 条目仍是 `not_run`。旧工作流把它汇总成“compile pass”，本流程拒绝这种抬升。
 
@@ -151,9 +151,9 @@ toolchain:
 gates:
   - id: fmt-root
     layer: G1
-    command: cargo fmt -- --check
+    command: cargo fmt --all -- --check
     cadence: every_iteration
-    proves: formatting_for_selected_workspace
+    proves: formatting_for_workspace_packages
   - id: check-local
     layer: G2
     selector: {packages: [uucore], features: [default], target: linux}

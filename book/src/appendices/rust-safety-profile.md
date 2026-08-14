@@ -68,7 +68,7 @@ Ubuntu 的两阶段外部审计和当时对若干高风险文件操作工具的�
 - [ ] MSRV、目标平台和 feature 组合被固定；
 - [ ] 构建脚本、proc macro 和原生依赖按可执行代码审查。
 
-uutils 在 workspace 层统一 lint，并通过 `deny.toml` 管理 advisory、许可证、重复依赖和来源策略，表明供应链验证应当进入常规门禁，而不是发布前人工突击。[E2-LINTS][E2-DENY]
+uutils 在 workspace 层统一 lint，并通过 `deny.toml` 管理 advisory、许可证、重复依赖和来源策略。[E2-LINTS][E2-DENY] 本书据此在 E4 层把供应链验证放入常规门禁，而不是发布前人工突击。[E4-VERIFICATION-LADDER]
 
 ## 与统一 DoD Profile 组合
 

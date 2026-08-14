@@ -4,7 +4,7 @@
 
 ## 问题现场：一段“测试已通过”无法回答的七个问题
 
-Agent 提交一个 140 行 patch，并附上：“修复边界行为；所有测试通过；风险低。”审稿人打开 CI 链接只看到最后二十行 `test result: ok`。没人知道命令在哪个目录执行、启用了哪些 feature、是否跑了目标平台、有没有 skip、修复前测试是否失败、差分 comparator 是否忽略 stderr，也没人知道 revert 后如何清理已产生的文件。
+Agent 提交 patch，只说“测试全过、风险低”。CI 只留 `test result: ok`：cwd、feature、平台、skip、修复前失败、stderr comparator 和回退清理均不明。
 
 维护者尝试从聊天历史补齐背景，却发现契约在第一轮对话，允许来源在第二轮，失败 seed 在临时 artifact，测试日志已经覆盖，回退讨论只存在一次会议。patch 的字节仍在，做出接受决定所需的证据图却不存在。所谓“交付完成”只是 Agent 停止生成。
 
@@ -44,11 +44,11 @@ Change Package（变更包）把一个行为意图、一个可寻址实现、回
 
 机器检查状态统一为四值：`Pass`、`Fail`、`Unverified`、`N/A`。`N/A` 不是空值，必须带适用规则与人工确认；`Unverified` 表示未运行、环境不可用、日志不足或差异未分类，不能写成 `Pass`。第 13 章和附录 E 将继续使用同一枚举。
 
-人工决定统一为 `Approve`、`Reject`、`Waive`，但**决定不能改写机器检查状态**。人类可以批准一份有边界、有期限、有补偿控制的 waiver；原检查仍保持 `Unverified` 或 `Fail`，包另记录 `verification_basis: LimitedWithWaiver`。这样查询历史时不会误以为当年检查实际通过。
+人工决定只有 `Approve | Reject | Waive`，且**不能改写机器状态**。有限、限时、有补偿控制的 waiver 仍保留原 `Unverified/Fail`，另记 `verification_basis: LimitedWithWaiver`，避免历史误报为通过。
 
-五个 DoD Profile 名称也在这里预留为稳定接口：`Mechanical`、`Local Behavior`、`Shared Core`、`Safety Critical`、`Release Default`。`selected_profiles` 是数组，命中多项取要求并集；第 13 章规范触发规则。机器不得根据 Agent 自报风险自动降级，人类若改变 Profile 选择必须单独记录决定与理由。
+Profile 机器值固定为 `mechanical | local_behavior | shared_core | safety_critical | release_default`，人读标签见[第 13 章](ch13-definition-of-done.md#五个规范-profile)；`selected_profiles` 取数组并集。Agent 不得自报降级，人类改选须留决定与理由。
 
-包状态与上述字段分离：`Draft`（契约/工件可不齐）、`Candidate`（实现与目标回归已存在）、`Verified`（适用门禁直接满足或有限 waiver 结构有效）、`Approved`（所需人类决定齐备）、`Staged`、`Observed`、`Closed`，以及失败分支 `RolledBack`。`Verified` 不等于 Approved；机器证据齐备不能替人接受风险，人签字也不能凭空产生 Verified。
+包状态独立为 `Draft -> Candidate -> Verified -> Approved -> Staged -> Observed -> Closed`，失败分支为 `RolledBack`。`Verified` 要求门禁直接满足或 waiver 结构有效，`Approved` 还要求人类决定；机器证据与签字不能互相替代。
 
 ```mermaid
 stateDiagram-v2
@@ -67,7 +67,7 @@ stateDiagram-v2
 
 ## Evidence Receipt：让“测试通过”变成可复核事实
 
-每次命令运行生成一个 Evidence Receipt。最小字段包括：`run_id`、目的、原样参数数组、cwd、源码/候选 commit、工具链、平台、feature、受控环境、开始时间、持续时间、退出状态、通过/失败/跳过数量、原始日志哈希、解析器版本、契约字段和局限。
+每次运行生成 receipt，至少记录身份、目的、argv、cwd、commit、工具/平台/feature/环境、起止、结果计数、日志哈希、解析器版本、契约字段与局限。
 
 命令保存为参数数组而不是可执行 shell 字符串，既便于安全重放，也避免引号在渲染中变化。敏感环境变量只记录名称和密钥版本/摘要，不存值。`purpose` 必须具体到契约，例如“验证缺能力时 exit=2 且不创建目标”，不能写“run tests”。
 
@@ -105,7 +105,7 @@ flowchart LR
 
 **Candidate。** 测试负责人上传 `RUN-REG-017-RED`：基线 commit、Linux/ext4、目标选择器、exit=非零、一个预期断言失败；再上传候选的 `RUN-REG-017-GREEN`。实现区列出两处路径、设计不变量和 Git 原子回退。包进入 Candidate，不因两个回执自动 Approved。
 
-**证据扩展。** 目标进程测试、相关 utility 测试、静态门禁和原复合 seed 重放各有 receipt。Windows runner 没有执行，状态 `Unverified`；由于 `Local Behavior` Profile 和当前声明平台只包含 Linux，平台负责人将 Windows 写为范围外后续契约，而不是把检查改 Pass。若代码触及共享跨平台路径，这种切分不会被 Profile 规则接受，必须升级 `Shared Core`。
+**证据扩展。** 进程测试、utility 测试、静态门禁和原 seed 重放各有 receipt。Windows 未执行，保持 `Unverified`；当前契约只含 Linux，平台负责人另建后续契约，不能改 Pass。若触及共享跨平台路径，必须升级 `shared_core`。
 
 **人类决定。** 维护者完成 explain-back，审稿人提出“测试是否保留重复路径记录”的异议；补上负控后异议关闭。机器聚合显示直接证据全部 Pass，`verification_basis: Direct`，状态进入 Verified。行为、来源、审稿与变更负责人分别签署同一包 hash，才进入 Approved。
 
@@ -174,13 +174,17 @@ evidence_receipts:
     argv: [cargo, test, --test, test_example, trailing_space]
     cwd: repo-root
     commit: abcdef0
-    runner: {os: linux, arch: x86_64, fs: ext4, toolchain: pinned}
+    runner: {os: linux, arch: x86_64, fs: ext4, toolchain: "rustc@sha256:toolchain"}
     features: [default]
+    started_at: "2026-08-14T09:00:00Z"
+    duration_ms: 4217
     result: {exit: 0, passed: 1, failed: 0, skipped: 0}
-    log: {uri: artifact:run-017, sha256: loghash}
+    log: {uri: "artifact:run-017", sha256: "sha256:loghash"}
+    parser_version: "cargo-test-json/v1"
     contract_fields: [output.stdout, side_effects]
     limitations: [windows_native_path]
-selected_profiles: [Local Behavior]
+profile_schema_ref: "chapter-13/profile-schema-v1"
+selected_profiles: [local_behavior]
 gate_results:
   - {requirement: LOCAL-RED-GREEN, status: Pass, evidence: [RUN-REG-017-RED, RUN-REG-017-GREEN]}
   - {requirement: WINDOWS-NATIVE, status: N/A, reason: outside_approved_linux_contract, confirmed_by: platform-owner}
@@ -190,8 +194,8 @@ machine_evaluation:
   eligible_for_verified: true
   evaluated_policy: dod-policy/v1
 human_decisions:
-  - {role: behavior_owner, decision: Approve, object_hash: sha256:package-canonical-json, reason: contract_preserved}
-  - {role: reviewer, decision: Approve, object_hash: sha256:package-canonical-json, reason: explain_back_and_receipts_complete}
+  - {role: behavior_owner, identity: alice, decision: Approve, scope: merge, object_hash: "sha256:package-canonical-json", reason: contract_preserved, decided_at: "2026-08-14T10:00:00Z", signature_ref: "sig:alice:017"}
+  - {role: reviewer, identity: bob, decision: Approve, scope: merge, object_hash: "sha256:package-canonical-json", reason: explain_back_complete, decided_at: "2026-08-14T10:05:00Z", signature_ref: "sig:bob:017"}
 objections: []
 waivers: []
 rollback:
@@ -205,7 +209,7 @@ rollback:
 
 ## AI Coding 工作台
 
-Agent 可采集命令、commit、runner、exit、计数和日志 hash，生成摘要草稿并检查引用；不能伪造 receipt、把 skip 算 passed、替人批准、改写 Unverified 或修改失败的 DoD policy。受信 runner、身份系统和固定 policy engine 分别写 receipt、人工决定和机器判定；候选 Agent 只写实现、回归与解释草稿。包在签字前冻结 canonical hash，修改即升 revision 并使旧签字失效。界面按“契约→diff→测试→回执→未知→回退”展示，降低重建成本而非生成更多文字。
+Agent 可采集命令、commit、runner、exit、计数与日志 hash，并生成摘要；不得伪造 receipt、把 skip 算 passed、替人批准或改写状态。受信 runner、身份系统与 policy engine 分别写 receipt、决定与判定。包签字前冻结 hash，修改即升 revision、旧签字失效；界面按“契约→diff→测试→回执→未知→回退”展示。
 
 ## 能证明什么／不能证明什么
 
@@ -230,7 +234,7 @@ Change Package 不是形式化证明，也不能保存模型的隐式推理或�
 - [ ] 每条命令 receipt 记录目的、argv、cwd、commit、runner、结果、skip、日志和局限。
 - [ ] red/green 分别绑定修复前后 commit；外部差异引用 DRR/FFP。
 - [ ] 使用 Pass、Fail、Unverified、N/A；人工决定不改写机器状态。
-- [ ] selected_profiles 使用五个规范名称且可组合取并集。
+- [ ] `selected_profiles` 只用第 13 章 lowercase machine enum，并引用唯一 schema。
 - [ ] 签字绑定 canonical object hash，包修改后生成新 revision。
 - [ ] 回退影响覆盖代码、配置、数据、副作用、触发和恢复验证。
 

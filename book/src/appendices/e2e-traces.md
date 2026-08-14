@@ -83,16 +83,21 @@ Change Package 通过 L2 Change Ready：契约、manifest 关闭证明、原子 
 场景：团队要修改共享错误类型，让不同 utility 统一携带退出码和诊断上下文。改动位于公共 crate，局部代码很少，但可能影响大量命令、平台条件和错误文本。这里最危险的误判是把“小 diff”当成“小风险”。uutils 的共享 `uucore`、统一错误桥接和 workspace lint 展示了这种架构的收益，也同时说明共享层需要更强验证。[E1-ARCH][E2-UUCORE][E2-ERROR-MODEL]
 
 ```mermaid
-flowchart LR
-    C["契约：哪些字段必须稳定"] --> I["接口变更：最小公共表面"]
-    I --> U1["代表 utility A"]
-    I --> U2["代表 utility B"]
-    I --> UP["平台专属路径"]
-    U1 --> G["workspace 静态门禁"]
-    U2 --> G
-    UP --> G
-    G --> T["分层测试与差分样本"]
-    T --> D["人类风险判定"]
+sequenceDiagram
+    participant O as API Owner
+    participant A as Agent
+    participant C as Consumers
+    participant V as Verifier
+    participant R as Reviewer
+    O->>A: 冻结契约与影响矩阵
+    A->>C: 增加兼容接口并迁移代表样本
+    C->>V: 提交普通、OS 与 cfg 路径
+    V->>R: workspace、进程与平台收据
+    alt 发现未知消费者或行为漂移
+        R-->>O: 停止、扩影响矩阵或逆序回退
+    else 证据闭合
+        R-->>O: 按 shared_core Profile 判定
+    end
 ```
 
 执行时，迁移负责人先建立影响矩阵，而不是立即让 Agent 全仓修改。矩阵至少包含：直接调用者、间接错误转换、不同退出码、是否比较 stderr、Unix/Windows 条件、feature 组合和外部消费者。然后把工作拆成三个原子包：先增加兼容的新接口；再迁移少量代表调用者并验证；最后才批量迁移剩余调用者。机械改名与语义变化分开提交，使评审能识别真正改变行为的部分。[E2-ATOMICITY]
@@ -146,15 +151,19 @@ Task Contract 使用 `profile_schema_ref: "chapter-13/profile-schema-v1"` 和 `s
 场景来自 Ubuntu 25.10：官方说明记录了一个后来已修复的 `date` 兼容问题，它会让部分系统停止自动检查更新，影响云、容器、桌面和服务器环境；修复版本为 `0.2.2-0ubuntu2.1` 或更高。[E3-DATE-INCIDENT] 这里的重点不是复盘某一行代码，而是观察一个看似普通的基础命令如何通过脚本和运维链路放大影响。
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Shadow
-    Shadow --> Canary: 差异率进入阈值
-    Canary --> Expand: 健康指标稳定
-    Canary --> Rollback: 更新检查异常
-    Expand --> Rollback: 业务或安全信号越界
-    Rollback --> Minimize: 保存真实输入与环境
-    Minimize --> Regression: 固化最小用例
-    Regression --> Shadow: 修复后重新观察
+sequenceDiagram
+    participant M as Monitor
+    participant C as Incident Commander
+    participant P as Provider Control
+    participant V as Verification
+    participant O as Utility Owner
+    M->>C: 更新新鲜度越过 hard gate
+    C->>P: kill switch，切回旧 provider
+    P-->>C: 核验未来调用与状态恢复
+    C->>V: 冻结并脱敏真实输入/环境
+    V->>O: 最小 seed、RED 契约与事故证据
+    O->>V: 修复包与永久 GREEN 回归
+    V-->>M: 新 artifact 回到 shadow/canary
 ```
 
 这条轨迹从第 14 章的发布状态机开始。系统在 shadow 或 canary 阶段不仅要统计进程崩溃，还应监控退出码分布、关键脚本成功率、自动更新的新鲜度和回退触发量。若只观察“命令能启动”，就无法发现下游调度链已经停止。

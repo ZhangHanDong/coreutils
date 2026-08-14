@@ -271,7 +271,7 @@ decision: approved_for_implementation_only
 
 主证据为 P1 [E1-P1]、目标 [E2-GOALS]、路径 [E2-RUST-SAFETY]、错误—退出桥 [E2-ERROR-MODEL]、诊断 [E2-ERROR-COMPAT]；提交已核验。schema、enum、账本、评审、工作台属 E4 [E4-CHANGE-PACKAGE]，案例为合成。
 
-<!-- source: docs/rust-coreutils.pdf -->
+<!-- publication: arXiv:2608.07135 -->
 <!-- source: CONTRIBUTING.md -->
 <!-- source: src/uucore/src/lib/mods/error.rs -->
 <!-- source: tests/uutests/src/lib/util.rs -->

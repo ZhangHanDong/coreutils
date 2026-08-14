@@ -41,17 +41,17 @@ flowchart TB
 
 ## 一手源码走查：从 workspace 到退出状态
 
-论文把多个 utility 依赖共享 `uucore`、并由 multicall 承载多命令部署描述为星形架构。[E1-ARCH] 固定提交把抽象变成可核验路径，但两类证据不能混成“永久现状”。
+论文把多个 utility 依赖共享 `uucore`、由 multicall 承载多命令描述为星形架构。[E1-ARCH] [第 2 章](../part1/ch02-uutils-case.md)已将它与固定提交路径分栏，本章不混成“永久现状”。
 
 ### workspace 是统一策略入口，不是自动继承魔法
 
-[`Cargo.toml:375–395`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/Cargo.toml#L375-L395)声明 resolver 3，把根包、`src/uu/*`、`src/uucore`、过程宏和测试夹具纳入 workspace，并在 `workspace.package` 固定 edition、最低 Rust 版本、许可证和版本。[E2-WORKSPACE] 这证明固定快照存在共同构建身份，不证明每个成员自动继承所有字段。实际成员要用 `edition.workspace = true`、依赖的 `workspace = true` 或 `[lints] workspace = true` 显式接入。
+[`Cargo.toml:375–395`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/Cargo.toml#L375-L395)声明 resolver 3，把根包、`src/uu/*`、`src/uucore`、过程宏和测试夹具纳入 workspace，并在 `workspace.package` 固定 edition、最低 Rust 版本、许可证和版本。[E2-ORIENTATION] 这证明固定快照存在共同构建身份，不证明每个成员自动继承所有字段。实际成员要用 `edition.workspace = true`、依赖的 `workspace = true` 或 `[lints] workspace = true` 显式接入。
 
 workspace 适合集中三类政策：构建身份、已批准依赖版本、共享 lint。它不应隐藏发布差异。某个 feature 如果改变 CLI 可见行为，就不只是“编译开关”，而是另一个需要契约和测试的产物。resolver 能解决 feature 解析规则，不能替项目决定哪些组合受支持。
 
 ### utility crate 保存局部行为
 
-固定贡献指南 [`CONTRIBUTING.md:29–51`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L29-L51)给出 `src/uu`、`uucore`、`tests/by-util`、multicall 和测试夹具的方向，并说明 utility 通常是独立 crate。[E2-WORKSPACE] 例如 `src/uu/basename/src/main.rs:6` 只有 `uucore::bin!(uu_basename)`；薄入口避免每个 utility 重写相同启动协议，命令语义仍在局部库。
+固定贡献指南 [`CONTRIBUTING.md:29–51`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L29-L51)给出 `src/uu`、`uucore`、`tests/by-util`、multicall 和测试夹具的方向，并说明 utility 通常是独立 crate。[E2-ORIENTATION] 例如 `src/uu/basename/src/main.rs:6` 只有 `uucore::bin!(uu_basename)`；薄入口避免每个 utility 重写相同启动协议，命令语义仍在局部库。
 
 “薄”不等于“不重要”。入口宏怎样把 OS 参数传给 `uumain`、怎样处理 `UResult`、最后怎样选择 exit code，都是进程契约。如果单元测试绕过入口，最容易漏掉的正是参数消费和最终退出。
 
@@ -221,7 +221,7 @@ Agent 可以沿真实源码定位入口和类型，可以根据编译／测试�
 
 | 能证明什么 | 不能证明什么 |
 |---|---|
-| 固定 workspace 声明成员、共同 edition、最低 Rust 版本、许可证和版本。[E2-WORKSPACE] | 所有成员自动继承政策、所有 feature 组合受支持或其他 commit 结构不变。 |
+| 固定 workspace 声明成员、共同 edition、最低 Rust 版本、许可证和版本。[E2-ORIENTATION] | 所有成员自动继承政策、所有 feature 组合受支持或其他 commit 结构不变。 |
 | `uucore` 按 feature 与 cfg 暴露共享、Unix、Windows 等能力。[E2-UUCORE] | 本机未构建分支类型正确、系统调用语义正确或平台行为等价。 |
 | `UResult/UError` 能表达惯用错误传播、非致命累计状态与错误 code。[E2-ERROR-MODEL] | 每个 utility 的 code、stderr、usage、部分副作用符合行为契约。 |
 | multicall 固定入口按名称或第二参数选择 utility，并调用 `uumain`。[E2-MULTICALL] | 独立与所有 multicall 调用形式自动等价；必须由进程测试覆盖。 |
@@ -253,7 +253,7 @@ Rust 的保证受语言边界限制。`unsafe`、FFI、内核、文件系统、�
 
 ## 本章证据
 
-本章六项主证据为论文星形架构 [E1-ARCH]、workspace 与 utility 边界 [E2-WORKSPACE]、共享 feature/cfg [E2-UUCORE]、multicall 入口 [E2-MULTICALL]、错误—退出桥 [E2-ERROR-MODEL] 与 Rust 路径／unsafe 规则 [E2-RUST-SAFETY]。五层骨架、两条轴、上提决策与 Decision Record 均由 [E4-RUST-SKELETON] 明标为作者治理综合；`path-kind` 为合成案例。
+论文结论为星形架构 [E1-ARCH]；五项源码主证据为 workspace/utility 边界 [E2-ORIENTATION]、共享 feature/cfg [E2-UUCORE]、multicall [E2-MULTICALL]、错误—退出桥 [E2-ERROR-MODEL] 与路径／unsafe 规则 [E2-RUST-SAFETY]。五层骨架、上提决策与 Decision Record 由 [E4-RUST-SKELETON] 明标为作者综合；`path-kind` 为合成案例。
 
 ### 版本演化说明
 

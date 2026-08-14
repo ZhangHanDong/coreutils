@@ -175,7 +175,7 @@ layers:
     oracle: [native_types, structured_error]
   L3_process:
     selector: test_emit_record_contract
-    fixture: {id: emit-native-v2, digest: sha256:..., isolated_tempdir: true}
+    fixture: {id: emit-native-v2, digest: "sha256:...", isolated_tempdir: true}
     observations: [stdout_bytes, stderr_bytes, exit, before_after_tree]
     entry: standalone
   L4_matrix:

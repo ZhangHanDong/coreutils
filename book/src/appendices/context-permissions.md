@@ -42,7 +42,8 @@ Agent Context Boundary 把“模型可以看到什么”从临时提示词提升
 ## 可执行清单
 
 ```yaml
-context_manifest_version: "1"
+schema: "context-manifest/v1"
+manifest_id: "CTX-MIG-UTILITY-001-v1"
 task_id: "MIG-UTILITY-001"
 owner: "migration maintainer"
 expires_when: "task closed or contract changes"
@@ -193,17 +194,18 @@ stateDiagram-v2
 closure:
   manifest_id: "CTX-MIG-UTILITY-001-v2"
   final_state: "Closed"
+  object_hash: "sha256:canonical-closure"
   final_run_ids: ["RUN-001", "RUN-002"]
   declared_observed_reconciled: true
   retained_artifacts:
     - {id: "CASE-017", sha256: "...", basis: "脱敏回归重放", expires_at: "project lifetime"}
   purge_ledger:
     - {location: "ephemeral worktree", result: "purged", actor: "automation", at: "RFC3339"}
-    - {location: "tool transcript store", result: "retained_until", at: "RFC3339", expires_at: "..."}
-    - {location: "model provider cache", result: "provider_attested", evidence: "policy version/ref"}
+    - {location: "tool transcript store", result: "retained_until", actor: "audit owner", at: "RFC3339", expires_at: "..."}
+    - {location: "model provider cache", result: "provider_attested", actor: "provider owner", evidence: "policy version/ref"}
   unresolved_denials: []
-  auditor: "context reviewer"
   closed_at: "RFC3339"
+  human_signoff: {role: "context reviewer", identity: "alice", decision: "Close", object_hash: "sha256:canonical-closure", reason: "reconciled and purged", decided_at: "RFC3339", signature_ref: "sig:closure"}
 ```
 
 ### 5. 污染与异常关闭

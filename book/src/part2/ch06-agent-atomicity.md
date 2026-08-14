@@ -51,7 +51,7 @@ flowchart LR
 
 [`CONTRIBUTING.md:235–244`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L235-L244)要求 small and atomic commits、干净历史、组件化提交信息，并明确不必要的移动会让评审更困难；确需移动时应单独提交。[E2-ATOMICITY] 这直接支持三列模型：机械移动的审稿问题是“语义是否保持”，行为修复的问题是“契约是否改变到批准范围”，不能用一个测试绿灯混答。
 
-固定 [`AGENTS.md:7–10`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L7-L10)要求驱动 Agent 的人对输出负责、阅读 diff，评审回复由人完成。[E2-AI-POLICY] 因而“Agent 生成解释”和“另一个 Agent 同意”不能关闭所有权；人类必须能复述行为意图、关键控制流和证据边界。
+固定 [`AGENTS.md:7–10`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L7-L10)要求驱动 Agent 的人对输出负责、阅读 diff，评审回复由人完成。[E2-AI-OWNERSHIP] 因而“Agent 生成解释”和“另一个 Agent 同意”不能关闭所有权；人类必须能复述行为意图、关键控制流和证据边界。
 
 [`AGENTS.md:17–23`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L17-L23)要求新行为或 bug 修复带本地 Rust 测试，即使外部测试从失败变为通过，也要增加回归，并以“No tests, no merge”结束。[E2-NO-TEST-NO-MERGE] 所以一行 exit code 修改仍是行为任务，不能因 diff 小而免测试；反过来，纯机械移动不应伪造无意义新测试，但要运行原契约证明无差异。
 
@@ -230,7 +230,7 @@ human_owner: utility-owner
 
 ## 本章证据
 
-本章三项主证据为 AI 所有权与聚焦要求 [E2-AI-POLICY]、小而原子及移动分列规则 [E2-ATOMICITY]、行为变化必须有本地回归 [E2-NO-TEST-NO-MERGE]。四元模型、三方案比较、Atomic Change Card 和验证带宽属于作者提炼 [E4-ATOMICITY]；案例为合成。
+本章主证据为 Agent 输出责任 [E2-AI-OWNERSHIP]、AI 贡献的理解与聚焦要求 [E2-AI-POLICY]、小而原子及移动分列规则 [E2-ATOMICITY]、行为变化必须有本地回归 [E2-NO-TEST-NO-MERGE]。四元模型、三方案比较、Atomic Change Card 和验证带宽属于作者提炼 [E4-ATOMICITY]；案例为合成。
 
 ### 版本演化说明
 

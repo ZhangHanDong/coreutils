@@ -1,27 +1,28 @@
 # 技术审查报告
 
-日期：2026-08-14  
-角色：独立技术审查（只读）  
-初始结论：**CHANGES_REQUIRED**  
-修订后处置：见 `review-summary.md`
+日期：2026-08-15
 
-审阅覆盖 Rust 软件迁移、clean-room、Agent Atomicity、静态/动态/差分/fuzz 门禁、Change Package、DoD 与生产发布。审阅过程未读取 GNU 实现源码或 `util/gnu-patches/**`。
+角色：独立技术审查（只读）
 
-## 发现
+最终结论：**PASS**
 
-1. **P0｜成稿扫描被写成上下文证明**：`scripts/check-source-refs.sh` 只扫描 Markdown 禁止字符串并验证 source marker，不能证明 Agent 没有读取、索引或缓存禁止内容。必须把结果准确命名为“出版物引用扫描”，将允许列表、规范化路径、工具 ACL、网络策略和实际访问日志另列为过程控制。
-2. **P1｜DoD Profile 不一致**：正文使用五种可组合 Profile，附录压成 `local/shared/production`，混淆爆炸半径、安全敏感度和发布范围。应全书统一为 `mechanical`、`local_behavior`、`shared_core`、`safety_critical`、`release_default` 的数组并取门禁并集。
-3. **P1｜四值状态模板不可执行**：附录 E 声明 `Pass/Fail/Unverified/N/A`，却只给空复选框。应改为包含 requirement ID、status、evidence run、owner、review time、waiver 的表或 schema。
-4. **P1｜Context Manifest 缺追溯字段**：模板只有声明来源，没有 commit/hash、规范化路径、检索时间、批准决定和实际访问。应分离 `declared_access` 与 `observed_access`。
-5. **P2｜Cargo 继承表述不准确**：workspace 成员不会自动继承全部 package/依赖/lint；需要按机制显式接入，profile 语义另行核对。
-6. **P2｜`uufuzz` 案例与 E4 扩展未分开**：基线保存 lossy UTF-8 字符串、比较前 trim/处理 stderr 前缀，stderr 失败可配置，且不采集文件系统副作用；原始字节、signal、资源限制和快照是本书扩展。
-7. **P2｜aspirational 风格写成硬要求**：贡献指南明确部分规则仍属目标，应区分指南目标与 lint/CI 的机械强制。
-8. **P2｜Task Contract 示例伪精确**：`echo` 示例不成立且关键字段缺失；应改为虚构 utility 并明确它不是完整真实契约。
-9. **P2｜任务缺停止/升级出口**：模板应加入 `stop_conditions`、`escalation_owner`、阻塞交付格式和“Agent 不得自行改契约”。
-10. **P2｜FFI 清单不完整**：需覆盖 `repr(C)`/布局/union、unwind、回调生命周期/线程/重入、分配释放方、nullability、函数指针和动态库版本。
+审阅覆盖 Rust 接缝、clean-room、Agent Atomicity、静态/动态/差分/fuzz 门禁、Change Package、DoD、FFI 与生产发布。审阅过程未读取 GNU 实现源码或 `util/gnu-patches/**`。
 
-## 已通过审查
+## 初审发现与处置
 
-行为契约、参考非绝对 oracle、双沙箱、契约授权 normalization、差异先分类、fuzz 分层最小化、red/green 永久回归、人类所有权、写操作 Shadow 限制和多层回退的技术方向成立。Rust 被正确限定为验证阶梯的一层，没有被写成语义或系统安全的自动证明。
+- 将出版物字符串扫描与过程访问控制分开：前者只能证明成稿未引用禁止路径；Context Manifest 才记录声明权限、实际访问、拒绝、清理与人类关闭签署。
+- 统一 `behavior-contract/v1` 七字段、`context-manifest/v1`、`chapter-13/profile-schema-v1`、五个 lowercase Profile、四种机器状态和三种人工决定；附录只引用规范接口，不另造 schema。
+- 修正 `UError` trait、`UResult<T>`、Unix 原始路径字节、Windows 原生 `OsString/Path`、cfg 未编译分支、workspace lint 显式继承与 `cargo fmt --all -- --check` 的证明边界。
+- 明确基线 `uufuzz` 的 lossy UTF-8、trim、可选 stderr、无文件系统快照，以及 `fuzz_date` 的候选侧属性；原始字节 ExecutionRecord 属 E4 扩展。
+- Change Package receipt 现包含 argv、cwd、commit、toolchain、时间、持续时长、parser、日志哈希和限制；每个人工决定包含 identity、scope、object hash、理由、时间与签名。
+- Appendix C closure 现包含 canonical hash、逐位置 purge actor/evidence 与 human signoff；未关闭的第 4 章示例明确只是 active execution excerpt。
+- Appendix E 把 L2 Change Package 与 L3 release package 分成两个对象；`release_default` 只在 L3 选择。第 16 章案例与 Canvas 使用相同链路。
+- FFI Profile 覆盖 ABI/布局、null、errno、unwind、回调线程/重入/生命周期、分配释放方、动态库和 safe wrapper 不变量。
 
-残余风险：模板仍需在具体项目的 CI、工具 ACL 和发布控制面中做真实演练，本文档本身不能证明这些集成已存在。
+## 最终核验
+
+- 24/24 YAML 块经 `yaml.safe_load` 解析；11 个 profile list、9 个 schema ref 和状态枚举递归检查无漂移。
+- 第 12 章的 decision scope、Appendix C closure、Appendix E L3 模板和第 16 章 L2→L3 交接均闭合。
+- Rust 类型/平台、测试 oracle、production rollback 的“能证明/不能证明”边界准确；未把 safe Rust、编译通过、fuzz corpus 或监控写成语义正确性的自动证明。
+
+残余边界：模板本身不能证明读者项目已经部署工具 ACL、CI runner、签名系统、生产控制面或真实回退；采用团队仍须演练。

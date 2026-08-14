@@ -1,6 +1,6 @@
 Expanded-edition automatic gate
-Timestamp: 2026-08-15T06:00:39+0800 (Asia/Shanghai)
-Candidate base: f884c0bae524f2baa0dcc9ea762a73b121fcd0bb plus the cross-chapter cleanup in this working tree
+Timestamp: 2026-08-15T06:45:37+0800 (Asia/Shanghai)
+Candidate base: c398ede06e76c66341fd44e78ba2513d505a7371 plus final review fixes in this working tree
 Source baseline: d8bee62c1ddc227d5e4385d80bbf6d7dee266a41
 Paper baseline: arXiv:2608.07135
 
@@ -21,44 +21,64 @@ Commands and results
    Exit: 0
    Result: PASS: book quality gate (pre-review)
 
+4. Parse every fenced YAML block with yaml.safe_load
+   Exit: 0
+   Result: PASS: 24/24 YAML blocks parse
+
+5. In-app browser QA on http://127.0.0.1:3001
+   Result: PASS: print.html has 31 Mermaid blocks rendered as 31 SVGs, 61 tables,
+   24 YAML blocks, no broken images, and no document-level horizontal overflow.
+   Appendix A has three rendered sequence diagrams and no document-level overflow.
+
+6. BOOK_SOURCE_ROOT=/Users/zhangalex/Work/Projects/consult/coreutils bash book/scripts/check-book.sh --root book
+   Exit: 0
+   Result: PASS: book quality gate (full)
+
 Manuscript metrics
 ==================
 
-SUMMARY target characters: 273042 (configured range: 250000-300000)
+SUMMARY target characters: 274125 (configured range: 250000-300000)
+Appendix characters: 59664 (configured range: 50000-60000)
 Mermaid blocks: 31
-Repository-relative source references: 80
-Evidence-tag occurrences: 285
+Repository-relative source references: 78
+Evidence-tag occurrences: 293
+YAML blocks: 24
 
-   8051  preface.md
+   8331  preface.md
    1414  evidence-policy.md
   11903  part1/ch01-behavior-reconstruction.md
-  14636  part1/ch02-uutils-case.md
-  13966  part1/ch03-behavior-contract.md
-  11709  part2/ch04-clean-room.md
-  13796  part2/ch05-rust-skeleton.md
-  10286  part2/ch06-agent-atomicity.md
-  12374  part3/ch07-static-gates.md
-  13982  part3/ch08-test-layers.md
+  14634  part1/ch02-uutils-case.md
+  13964  part1/ch03-behavior-contract.md
+  11992  part2/ch04-clean-room.md
+  13818  part2/ch05-rust-skeleton.md
+  10318  part2/ch06-agent-atomicity.md
+  12386  part3/ch07-static-gates.md
+  13984  part3/ch08-test-layers.md
   13014  part3/ch09-differential-testing.md
-  12183  part3/ch10-fuzz-regression.md
-  11133  part4/ch11-human-owns-change.md
-  11991  part4/ch12-change-package.md
+  12199  part3/ch10-fuzz-regression.md
+  11182  part4/ch11-human-owns-change.md
+  11985  part4/ch12-change-package.md
   13000  part4/ch13-definition-of-done.md
-  12362  part5/ch14-rollout-rollback.md
-  14073  part5/ch15-ubuntu-boundaries.md
-  13358  part5/ch16-pipeline.md
-  12557  appendices/e2e-traces.md
-  10074  appendices/task-contract.md
-   7885  appendices/context-permissions.md
-   7356  appendices/rust-safety-profile.md
-   9488  appendices/dod-checklist.md
-  12451  appendices/evidence-index.md
+  12477  part5/ch14-rollout-rollback.md
+  14215  part5/ch15-ubuntu-boundaries.md
+  13645  part5/ch16-pipeline.md
+  12831  appendices/e2e-traces.md
+   8340  appendices/task-contract.md
+   8191  appendices/context-permissions.md
+   7388  appendices/rust-safety-profile.md
+   9964  appendices/dod-checklist.md
+  12950  appendices/evidence-index.md
 
-Cross-chapter audit disposition
-===============================
+Revision audit disposition
+==========================
 
-- Canonical behavior interface is K=(I,O,X,S,E,P,U) plus mandatory non_goals.
-- Earlier five/six-field remnants and their stale anchors were removed.
-- The rollout experiment's five fields are explicitly distinct from the behavior contract.
-- Source annotations now use real repository-relative files; publication URLs remain normal links.
-- The full read-only three-role review follows this automatic gate.
+- Canonical behavior interface remains K=(I,O,X,S,E,P,U) plus mandatory non_goals.
+- Appendix B references behavior-contract/v1; Appendix C owns context-manifest/v1.
+- Profile schema is chapter-13/profile-schema-v1 with lowercase machine enums.
+- L2 Change Package and L3 release package are separate objects; release_default starts at L3.
+- Evidence receipts, human decisions, closure signoff and waivers include replay, identity,
+  time, hash, scope and lifecycle fields.
+- All three Appendix A traces use actor-oriented Mermaid sequence diagrams and meet 4,000-5,000 characters.
+- Publication metadata no longer depends on an untracked local PDF; repository source annotations resolve.
+- Cross-chapter return paths and Appendix F's reverse index are clickable.
+- The three-role read-only re-review follows this gate.

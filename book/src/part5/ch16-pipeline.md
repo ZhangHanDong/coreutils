@@ -1,6 +1,6 @@
 # 第 16 章：AI-Native Rust Migration Pipeline
 
-> **定位**：本章将全书方法收敛为一条可运行的十阶段流水线。前置依赖是行为契约、Agent 上下文、Rust 骨架、验证阶梯、变更包和生产回退；输出是一个不以代码生成结束，而以已观测迁移与知识回流结束的端到端系统。
+> **定位**：本章把[行为契约](../part1/ch03-behavior-contract.md)、[Agent 上下文](../part2/ch04-clean-room.md)、[验证阶梯](../part3/ch07-static-gates.md)、[变更包](../part4/ch12-change-package.md)和[生产回退](ch14-rollout-rollback.md)收敛为十阶段流水线；可执行模板回到[附录 A—E](../appendices/e2e-traces.md)。
 
 AI-native 不是「在原有流程中增加一个 prompt 步骤」。如果任务仍然是模糊的「把这个子系统改成 Rust」，验收仍然是一次编译与一次人工演示，发布仍然是默认全切，那么 AI 只是加速了候选代码的产生，没有加速团队对系统的理解与信心建立。
 
@@ -160,7 +160,7 @@ flowchart LR
 
 阶段 7 的双沙箱差分发现退出码一致、清单字节一致，但候选在不可读子目录上多输出一条 stdout 提示。人类将其分类为候选缺陷而非“更友好信息”，因为 stdout 被脚本解析；反例最小化后回到阶段 5，新任务只修通道。macOS 非 UTF-8 样本无法合法构造，经触发规则与平台 owner 确认为 `N/A`，而不是伪造通过；另一个权限差异保持 `Unverified` 并阻断 macOS 默认。
 
-阶段 8 形成 Change Package，`local_behavior` Profile 的适用 requirement 为 `Pass/N/A`；审稿人能从契约追到两次 red/green 和 diff，并单独记录 `Approve` 决定。阶段 9 先 shadow 真实脱敏目录，候选结果不返回下游；internal canary 在两个可恢复 runner 上运行，kill switch 以 job 为粘性单位。月度审计作业出现一次内存峰值超预算，扩流停留，Agent 协助聚类但性能 owner 决定优化任务。修复后重走 5–9，并完成切回旧产物的 drill。
+阶段 8 形成 L2 Change Package，`local_behavior` 的适用 requirement 为 `Pass/N/A`；审稿人从契约追到 red/green 和 diff，并记录 `Approve`。进入阶段 9 前另建 L3 release package，引用 L2 包和同一 artifact，按唯一 schema 选择 `[local_behavior, release_default]`。随后 shadow 真实脱敏目录，internal canary 在两个可恢复 runner 上运行，kill switch 以 job 为粘性单位。月度审计作业出现内存峰值超预算，扩流停留；修复后重走 5–9，并完成旧产物切回 drill。
 
 阶段 10 观察两个审计周期后，Linux 成为默认；macOS 因权限语义未知继续旧实现。生产发现一个带换行文件名使日志聚合误分行，但清单字节正确。团队没有改 utility 输出，而是更新观测编码与下游测试。最终结论是“Linux 声明范围 Observed，macOS 共存”，并把第二个切片选为有状态的归档命令，以检验恢复与共享路径假设。
 
@@ -197,13 +197,15 @@ portfolio:
     state_destructiveness: 1
     platform_spread: 3
     recovery_cost: 1
-    selected_profiles: ["local_behavior"]
+    change_profiles: ["local_behavior"]
+    release_profiles: ["local_behavior", "release_default"]
     current_stage: 9
     canonical_artifacts:
       contract: "BC-ML-001"
       context: "CTX-ML-001"
       task: "TASK-ML-001"
       change_package: "CP-ML-001"
+      release_package: "RP-ML-001"
       dod: "DOD-ML-001"
       rollout: "ROLLOUT-ML-001"
     unverified: ["macos-permission-error"]

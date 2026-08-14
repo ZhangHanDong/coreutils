@@ -53,7 +53,7 @@ flowchart LR
 
 具体 target 展示了能力差异。`fuzz_date.rs:14-20` 把 LibFuzzer 的 `&[u8]` 按 NUL 拆为 UTF-8 argv；`22-41` 跳过可能读取 stdin 而挂住 fuzzer 的组合；`43-47` 只调用候选 `uumain`。这更接近候选鲁棒性/崩溃搜索，不是该文件中的双实现差分。
 
-`fuzz_echo.rs:20-59` 不使用 LibFuzzer 提供的 `_data` 构造参数，而是由 target 自己随机选择 `-n/-e/-E` 和转义片段；`62-89` 分别执行候选与参考并调用比较器，stderr 差异设置为失败。`fuzz_sort.rs:19-47` 自己生成若干选项和十行输入；`49-84` 做双路比较，但把 `fail_on_stderr_diff` 设为 `false`。[E2-UUFUZZ-COMPARE] 生成策略和 stderr 政策都在 target 层，不在 uufuzz 库自动决定。
+`fuzz_echo.rs:20-59` 不使用 LibFuzzer 提供的 `_data` 构造参数，而是由 target 自己随机选择 `-n/-e/-E` 和转义片段；`62-89` 分别执行候选与参考并调用比较器，stderr 差异设置为失败。`fuzz_sort.rs:19-47` 自己生成若干选项和十行输入；`49-84` 做双路比较，但把 `fail_on_stderr_diff` 设为 `false`。[E2-UUFUZZ-TARGETS] 生成策略和 stderr 政策都在 target 层，不在 uufuzz 库自动决定。
 
 uufuzz 库的随机辅助也有具体边界。`fuzz/uufuzz/src/lib.rs:325-347` 生成一个 `String`，字符池含 ASCII、emoji 和由两个字节值转成的 Unicode scalar；它没有生成不可构造的 Rust `String` 非 UTF-8 字节。`350-367` 创建随机临时文件并写 printable ASCII。项目另有 `fuzz_non_utf8_paths.rs` 在 Unix 用 `OsStringExt/OsStrExt` 构造原生路径，这再次说明“路径字节能力”来自具体 target，而非通用字符串生成器。
 
@@ -206,7 +206,7 @@ corpus_disposition:
 
 | 能证明什么 | 不能证明什么 |
 |---|---|
-| 固定提交存在多 target、LibFuzzer 入口和不同生成/比较形状。[E2-UUFUZZ-COMPARE] | 所有 target 都是差分、都语法感知、覆盖充分或持续运行。 |
+| 固定提交存在多 target、LibFuzzer 入口和不同生成/比较形状。[E2-UUFUZZ-TARGETS] | 所有 target 都是差分、都语法感知、覆盖充分或持续运行。 |
 | 项目规则要求已知行为修复进入 Rust 测试库。[E2-COMPAT-WORKFLOW] [E2-NO-TEST-NO-MERGE] | 任意 corpus 文件已经是稳定、具名、契约正确的回归。 |
 | 最小回归的 red/green 回执可证明指定提交、runner 与期望下由失败转为通过。 | 根因唯一、所有相邻输入正确或其他平台无同类缺陷。 |
 | 连续重放可测量该环境中的稳定性，quarantine 可诚实表达未知。 | 低复现率就是无风险，或用更多重试能修复竞态。 |
@@ -237,7 +237,7 @@ Fuzz 只能探索生成器可达、harness 可观察、oracle 可判断且预算
 
 ## 本章证据
 
-fuzz、差分、grammar 和缩减的项目研究背景来自 [E1-DIFF-FUZZ]；基线比较器与 target 差异来自 [E2-UUFUZZ-COMPARE]；从外部兼容失败到 Rust 回归的步骤来自 [E2-COMPAT-WORKFLOW]；测试随行为修复进入合并门禁来自 [E2-NO-TEST-NO-MERGE]。五阶段循环、Failure Package、quarantine 与语料分层均是 E4-DISCOVER-LOOP 作者综合，不是仓库现行 schema。
+fuzz、差分、grammar 和缩减的项目研究背景来自 [E1-DIFF-FUZZ]；基线比较器来自 [E2-UUFUZZ-COMPARE]，target 注册、生成与比较差异来自 [E2-UUFUZZ-TARGETS]；外部失败到 Rust 回归来自 [E2-COMPAT-WORKFLOW]，测试合并门禁来自 [E2-NO-TEST-NO-MERGE]。五阶段循环、Failure Package、quarantine 与语料分层均是 E4-DISCOVER-LOOP 作者综合，不是仓库现行 schema。
 
 ### 版本演化说明
 

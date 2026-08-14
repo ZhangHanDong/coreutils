@@ -289,7 +289,7 @@ uutils 不是行业标准，而是条件清楚的高信息密度案例：CLI 行
 
 完整证据矩阵见本章“两条基线”一节：六项中五项为 E1 论文事实，一项为 E2 固定源码事实；E4 内容均以作者提炼明示。
 
-<!-- source: docs/rust-coreutils.pdf -->
+<!-- publication: arXiv:2608.07135 -->
 <!-- source: CONTRIBUTING.md -->
 <!-- source: Cargo.toml -->
 <!-- source: src/bin/coreutils.rs -->
