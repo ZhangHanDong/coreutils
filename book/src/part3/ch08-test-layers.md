@@ -1,6 +1,6 @@
 # 第 8 章：测试层次
 
-> **定位**：本章把[第 3 章七字段契约](../part1/ch03-behavior-contract.md#从五元组展开为七字段契约)和[第 7 章静态门禁](ch07-static-gates.md#概念模型五层拒绝器与三种范围)映射为六层动态证据：unit、component、utility 进程、workspace／平台、外部兼容套件与生产反馈。适用于选择测试落点、设计 fixture／平台矩阵、分诊 flaky failure 和规定测试所有权；读者最终应能把外部或生产反例固化为本地 Rust 回归。
+> **定位**：本章把[第 3 章七字段契约](../part1/ch03-behavior-contract.md#七字段契约)和[第 7 章静态门禁](ch07-static-gates.md#概念模型五层拒绝器与三种范围)映射为六层动态证据：unit、component、utility 进程、workspace／平台、外部兼容套件与生产反馈。适用于选择测试落点、设计 fixture／平台矩阵、分诊 flaky failure 和规定测试所有权；读者最终应能把外部或生产反例固化为本地 Rust 回归。
 
 ## 具体失败现场：四百个单元测试没有启动过进程
 

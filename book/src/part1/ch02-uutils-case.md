@@ -226,7 +226,7 @@ AI Coding 工作台至少保留六个同步视图；这是作者提炼 [E4-SEARC
 1. **基线视图**：论文测量与固定 commit 分栏，所有数量带版本；禁止把实时网页、旧论文和本地源码合并成无日期摘要。
 2. **权限视图**：展示允许/禁止路径；资料缺失时停止分支。边界必须能从访问记录核对。
 3. **架构视图**：画出 feature、utility、`uucore`、两类入口、测试和 fuzz；共享层变更提高审查级别。
-4. **行为视图**：当前只显示一个 `(I,O,E,S,P,N)` 切片，尤其标出文件系统/设备状态与平台前提；行为六元组在[第 3 章](ch03-behavior-contract.md)展开。
+4. **行为视图**：当前只显示一个 `K=(I,O,X,S,E,P,U)` 切片及必填 `non_goals`，尤其标出文件系统/设备状态、平台前提与未知面；字段定义见[第 3 章](ch03-behavior-contract.md)。
 5. **反馈视图**：按门禁来源分类失败，保存最小输入、环境和比较器版本；绿色也记录盲区。
 6. **责任视图**：Agent 生成候选与证据草稿，人类确认期望来源、diff、许可、残余风险和发布决策。模型自信度不能提升证据等级。
 
@@ -289,14 +289,19 @@ uutils 不是行业标准，而是条件清楚的高信息密度案例：CLI 行
 
 完整证据矩阵见本章“两条基线”一节：六项中五项为 E1 论文事实，一项为 E2 固定源码事实；E4 内容均以作者提炼明示。
 
-<!-- source: /Users/zhangalex/Work/Projects/consult/coreutils/docs/rust-coreutils.pdf -->
+<!-- source: docs/rust-coreutils.pdf -->
 <!-- source: CONTRIBUTING.md -->
 <!-- source: Cargo.toml -->
 <!-- source: src/bin/coreutils.rs -->
 <!-- source: src/uucore/src/lib/lib.rs -->
-<!-- source: src/uu/{date,cp,stty,factor}/ -->
-<!-- source: tests/uutests/ and tests/by-util/ -->
-<!-- source: fuzz/Cargo.toml and fuzz/fuzz_targets/fuzz_date.rs -->
+<!-- source: src/uu/date/src/date.rs -->
+<!-- source: src/uu/cp/src/cp.rs -->
+<!-- source: src/uu/stty/src/stty.rs -->
+<!-- source: src/uu/factor/src/factor.rs -->
+<!-- source: tests/uutests/src/lib/util.rs -->
+<!-- source: tests/by-util/test_date.rs -->
+<!-- source: fuzz/Cargo.toml -->
+<!-- source: fuzz/fuzz_targets/fuzz_date.rs -->
 <!-- source: fuzz/uufuzz/src/lib.rs -->
 
 四类难度、Repository Risk Lens、Repository Orientation Map、AI Coding 工作台和证明限定均为 E4 作者提炼，不是论文的 AI 研究结论。

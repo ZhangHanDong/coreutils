@@ -20,7 +20,7 @@ Ubuntu 25.10 的 `date` 通知提供了一个真实边界：2025 年 10 月 23 �
 
 第 13 章的 DoD 回答“候选是否有资格进入下一环境”，本章回答“下一环境怎样产生新的证据，同时限制错误半径”。两者接口是一份不可变的发布候选：产物摘要、Behavior Contract、Change Package、所选 DoD Profile、已知差异、未验证项和回退影响必须一起冻结。若进入 canary 后又重新构建二进制，先前证据与实际产物就失去连接。
 
-一次发布实验可写成五元组：
+一次发布实验可写成独立于七字段行为契约的五字段记录：
 
 \[
 R = (Artifact, Cohort, Observation, Threshold, Recovery)

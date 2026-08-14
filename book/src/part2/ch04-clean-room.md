@@ -1,6 +1,6 @@
 # 第 4 章：Clean Room 与 Agent Context Boundary
 
-> **定位**：本章把 clean-room 从一句许可警告编译为 Agent 可执行、可暂停、可审计的上下文访问控制。前置依赖是[第 3 章的七字段行为契约](../part1/ch03-behavior-contract.md#从五元组展开为七字段契约)；适用于重实现任务启动、检索系统配置、子任务委派和来源事故响应。读完后，读者应能批准一份 Context Manifest，并判断一次“没有引用禁止材料”为什么仍不足以证明上下文干净。
+> **定位**：本章把 clean-room 从一句许可警告编译为 Agent 可执行、可暂停、可审计的上下文访问控制。前置依赖是[第 3 章的七字段行为契约](../part1/ch03-behavior-contract.md#七字段契约)；适用于重实现任务启动、检索系统配置、子任务委派和来源事故响应。读完后，读者应能批准一份 Context Manifest，并判断一次“没有引用禁止材料”为什么仍不足以证明上下文干净。
 
 ## 具体失败现场：引用删掉了，污染没有消失
 
@@ -78,7 +78,7 @@ flowchart LR
 | 缓存／记忆 | 任务级 namespace、TTL、关闭时清除证明 | 跨任务命中或来源丢失 | 污染范围升级为所有消费者 |
 | 委派 | 子任务继承 manifest 哈希和最小权限 | 子 Agent 请求更宽上下文 | 父任务暂停并人工扩权 |
 
-成稿中的 `<!-- source: ... -->` 扫描只覆盖“最终文稿声明了什么”；它不读取模型历史、索引内容或工具日志，因而不能被写成过程 clean-room 证明。扫描结果应叫 `publication_reference_gate`，访问控制结果应叫 `context_access_receipt`，两者分栏报告。
+成稿中的仓库相对 `source` 注释扫描只覆盖“最终文稿声明了什么”；它不读取模型历史、索引内容或工具日志，因而不能被写成过程 clean-room 证明。扫描结果应叫 `publication_reference_gate`，访问控制结果应叫 `context_access_receipt`，两者分栏报告。
 
 ## 完整工程案例
 

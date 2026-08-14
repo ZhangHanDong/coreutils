@@ -11,9 +11,9 @@
 <!-- source: CONTRIBUTING.md -->
 <!-- source: tests/by-util/test_basename.rs -->
 
-## 从五元组展开为七字段契约
+## 七字段契约
 
-第 1 章用 `B=(I,O,E,S,P)`，相邻旧文还见 `(I,O,E,S,P,N)`。本章规范为 `K=(I,O,X,S,E,P,U)`：错误拆为 `O.stderr/X`，前提拆为 `E/P/U`，`N` 迁为必填 `non_goals`；旧缩略引用由 Task 19 迁移。
+本章统一使用 `K=(I,O,X,S,E,P,U)`，并要求必填 `non_goals`。`O` 区分 stdout/stderr，`X` 记录退出码、信号或超时，`E/P/U` 分别约束环境、平台与未知面；第 1、2 章的发现视图都投影到这个接口。
 
 | 字段 | 内容 | 可执行要求 |
 |---|---|---|
@@ -271,7 +271,7 @@ decision: approved_for_implementation_only
 
 主证据为 P1 [E1-P1]、目标 [E2-GOALS]、路径 [E2-RUST-SAFETY]、错误—退出桥 [E2-ERROR-MODEL]、诊断 [E2-ERROR-COMPAT]；提交已核验。schema、enum、账本、评审、工作台属 E4 [E4-CHANGE-PACKAGE]，案例为合成。
 
-<!-- source: https://arxiv.org/abs/2608.07135 -->
+<!-- source: docs/rust-coreutils.pdf -->
 <!-- source: CONTRIBUTING.md -->
 <!-- source: src/uucore/src/lib/mods/error.rs -->
 <!-- source: tests/uutests/src/lib/util.rs -->

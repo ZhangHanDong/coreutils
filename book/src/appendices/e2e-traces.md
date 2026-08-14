@@ -50,7 +50,7 @@ sequenceDiagram
 
 行为所有者先运行两次独立黑盒观测，确认同一基线、locale 和输入下 oracle 都返回 `2`。第一次结果只用于发现，第二次才证明夹具可重放。随后创建 `BC-EXIT-017`：`I` 固定 argv/前态，`O` 规定 stdout 精确为空且 stderr 只比较已批准类别，`X` 精确为 `2`，`S` 要求文件树无变化，`E/P` 固定 locale 与平台，`U` 记录动态临时路径映射为 `<TMP>`，`non_goals` 排除全局诊断重写。这里的退出码/输出摘要只是讲解子集，不能替代完整七字段契约；也不能在发现差异后临时增加归一化。
 
-Context Manifest `CTX-EXIT-017-v1` 只允许公开规范、观测 JSON、目标 Rust 模块和目标测试。harness 本身由验证负责人维护，Agent 可以调用但不能改比较器；若比较器也需要修复，另建任务。RED run 记录候选 commit、oracle 身份、容器 digest、完整 argv/env 和五个观测字段。验证负责人交换执行顺序再跑一次，排除缓存和共享目录污染。
+Context Manifest `CTX-EXIT-017-v1` 只允许公开规范、观测 JSON、目标 Rust 模块和目标测试。harness 本身由验证负责人维护，Agent 可以调用但不能改比较器；若比较器也需要修复，另建任务。RED run 记录候选 commit、oracle 身份、容器 digest，以及七字段契约对应的完整 argv/env 与实际观测值。验证负责人交换执行顺序再跑一次，排除缓存和共享目录污染。
 
 Agent 的第一份候选只改错误分支并增加进程级测试。评审者用 `git diff` 确认没有顺便统一诊断框架；静态门禁和目标 utility 测试通过后，使用同一 case 生成 GREEN run。最小化器删除一个选项时差异消失，因此该选项保留在 seed，并记录“不可再删”的理由。最后把 seed 从外部 corpus 复制成项目自身测试数据，使以后无需 oracle 也能检查契约。[E2-NO-TEST-NO-MERGE][E4-DISCOVER-LOOP]
 

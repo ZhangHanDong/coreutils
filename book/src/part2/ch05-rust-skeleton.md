@@ -1,6 +1,6 @@
 # 第 5 章：用 Rust 建立迁移骨架
 
-> **定位**：本章把[第 3 章行为契约](../part1/ch03-behavior-contract.md#从五元组展开为七字段契约)和[第 4 章 Context Manifest](ch04-clean-room.md#可复用工件)落到 Rust 工程接缝：workspace、utility、共享核心、进程入口、平台分支与验证夹具。适用于创建第一个候选 crate、决定抽象上提，或审查路径／错误／cfg 边界的读者。完成本章后，读者应能画出从 argv 到进程退出的真实控制流，并为“先共享还是先局部”留下可复核决策。
+> **定位**：本章把[第 3 章行为契约](../part1/ch03-behavior-contract.md#七字段契约)和[第 4 章 Context Manifest](ch04-clean-room.md#可复用工件)落到 Rust 工程接缝：workspace、utility、共享核心、进程入口、平台分支与验证夹具。适用于创建第一个候选 crate、决定抽象上提，或审查路径／错误／cfg 边界的读者。完成本章后，读者应能画出从 argv 到进程退出的真实控制流，并为“先共享还是先局部”留下可复核决策。
 
 ## 具体失败现场：类型都对，命令仍然不兼容
 
