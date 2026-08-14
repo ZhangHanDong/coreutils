@@ -174,6 +174,7 @@ method_decision:                 # E4; not attributed to Ubuntu
   local_system: "tree-prune"
   analogy_used: "destructive path operations need utility-specific evidence"
   analogy_limits: "different code, packaging and threat model"
+  profile_schema_ref: "chapter-13/profile-schema-v1"
   selected_profiles: ["local_behavior", "safety_critical", "release_default"]
   required_new_evidence:
     - "descriptor-anchored traversal review"

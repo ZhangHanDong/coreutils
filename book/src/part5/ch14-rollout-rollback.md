@@ -167,7 +167,8 @@ candidate:
   artifact_digest: "sha256:..."
   behavior_contracts: ["BC-AP-042"]
   change_package: "CP-AP-042"
-  dod_profiles: ["local_behavior", "release_default"]
+  profile_schema_ref: "chapter-13/profile-schema-v1"
+  selected_profiles: ["local_behavior", "release_default"]
   residual_unverified: ["UNVERIFIED-FS-REMOTE"]
 
 stateful_shadow:

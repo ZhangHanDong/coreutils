@@ -44,7 +44,7 @@ sequenceDiagram
 | Repair | 单一错误分支与回归 | `CP-EXIT-017` | 需要共享接口则回第 6 章新建任务 |
 | Verify | red/green、静态与目标测试 | `DOD-EXIT-017` | 任一项 Unverified 则阻断或显式豁免 |
 
-简化 Task Contract 片段为 `profiles: [local_behavior]`、`stop_conditions: [需要共享接口, oracle 不可重放]`。最终 Change Package 至少列出 `BC-EXIT-017`、修复提交、`RUN-EXIT-017-RED/GREEN`、风险所有者和 Git 级原子回退；这比“测试已通过”的口头交接多出了可定位的责任边。
+简化 Task Contract 使用 `profile_schema_ref: "chapter-13/profile-schema-v1"`、`selected_profiles: ["local_behavior"]` 和停止条件。Change Package 至少列出 `BC-EXIT-017`、修复提交、`RUN-EXIT-017-RED/GREEN`、风险所有者与原子回退。
 
 ### 轨迹一的正常分支
 
@@ -105,7 +105,7 @@ flowchart LR
 
 对应工件可以这样编号：`IMPACT-ERR-004` 保存直接/间接消费者和平台矩阵；`API-ERR-004` 只增加兼容接口；`CP-ERR-004-A/B` 分别迁移代表 utility；`RUN-ERR-004-*` 保存 workspace 与进程测试。源码锚点使用 `src/uucore/src/lib/mods/error.rs`、workspace `Cargo.toml` 和 `DEVELOPMENT.md`，让评审能从共享抽象追到实际门禁。[E2-ERROR-MODEL][E2-LINTS][E2-TEST-COMMANDS]
 
-Task Contract 应选择 `profiles: [shared_core]`；若出现 FFI，则组合为 `[shared_core, safety_critical]`，而不是把它误写成“production”。停止条件包括：调用者矩阵无法列全、safe wrapper 前提不成立、目标平台只有编译没有运行。任一条件触发时，返回第 5 章重新划接缝或第 6 章拆任务。最终 Change Package 的 DoD 摘要要逐项列出代表消费者、未运行平台和独立评审者，不能用全仓测试总数替代影响证明。
+Task Contract 使用 `profile_schema_ref: "chapter-13/profile-schema-v1"` 和 `selected_profiles: ["shared_core"]`；出现 FFI 时后者改为 `["shared_core", "safety_critical"]`。调用者矩阵不全、safe wrapper 前提不成立或目标平台仅编译时停止，返回第 5/6 章。DoD 摘要逐项列出代表消费者、未运行平台和独立评审者。
 
 ### 轨迹二的正常分支
 
@@ -167,7 +167,7 @@ stateDiagram-v2
 
 这条轨迹的工件链为：事故事实 `INC-DATE-2025-10-23`，受控重放 `RUN-DATE-001`，最小契约 `BC-DATE-001`，回归与修复包 `CP-DATE-001`，以及重新扩流的 `ROLLOUT-DATE-002`。生产事实来自 Ubuntu 官方事故记录；具体实现根因若不在允许证据中，不由本书猜测。[E3-DATE-INCIDENT]
 
-Task Contract 选择 `[local_behavior, release_default]`；若问题进入更新或权限安全链路，再组合 `safety_critical`。失败分支不是只有“代码未修好”：如果监控不能证明更新新鲜度，返回第 14 章补观测；如果真实输入不能安全脱敏，返回第 4 章的数据权限审查；如果回退后仍有部分系统状态未恢复，迁移停在 Default 之前。最终 DoD 除 red/green 测试外，还必须引用实际 provider 回退演练、观察窗口和值班所有者。
+Task Contract 使用 `profile_schema_ref: "chapter-13/profile-schema-v1"` 与 `selected_profiles: ["local_behavior", "release_default"]`；进入更新或权限安全链路时追加 `"safety_critical"`。监控不能证明更新新鲜度就回第 14 章，真实输入不能脱敏就回第 4 章，状态未恢复则停在 Default 前；DoD 还须引用 provider 回退演练、观察窗口和值班所有者。
 
 ### 轨迹三的正常分支
 

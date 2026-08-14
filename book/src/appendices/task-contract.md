@@ -84,8 +84,7 @@ ownership:
 
 completion:
   profile_schema_ref: "chapter-13/profile-schema-v1"
-  selected_profiles:
-    - "mechanical | local_behavior | shared_core | safety_critical | release_default"
+  selected_profiles: ["local_behavior"]
   requirement_status_enum: ["Pass", "Fail", "Unverified", "N/A"]
   verification_basis_enum: ["Direct", "LimitedWithWaiver"]
   human_decision_enum: ["Approve", "Reject", "Waive"]
