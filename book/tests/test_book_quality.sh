@@ -141,6 +141,16 @@ expect_chapter_fail() {
     fi
 }
 
+sed_in_place() {
+    expression=$1
+    shift
+    for file in "$@"; do
+        temporary="${file}.sed.$$"
+        sed "$expression" "$file" > "$temporary"
+        mv "$temporary" "$file"
+    done
+}
+
 valid="$TMP_ROOT/valid"
 make_fixture "$valid"
 BOOK_SOURCE_ROOT="$valid/source-repo" BOOK_MIN_CHARS=1 BOOK_MAX_CHARS=20000 "$CHECK" --root "$valid" >/dev/null
@@ -165,7 +175,7 @@ expect_chapter_fail symlink-gnu-escape 'refusing prohibited chapter path' "$syml
 
 root_specs="$TMP_ROOT/root-specs"
 make_fixture "$root_specs"
-sed -i '' 's/10,000–12,000/1–2/' "$root_specs/specs/ch01-behavior-reconstruction.spec.md"
+sed_in_place 's/10,000–12,000/1–2/' "$root_specs/specs/ch01-behavior-reconstruction.spec.md"
 expect_fail root-specific-spec 'chapter above configured character budget' "$root_specs"
 
 pre_review="$TMP_ROOT/pre-review"
@@ -199,7 +209,7 @@ expect_fail placeholder 'placeholder content' "$placeholder"
 
 missing_pattern="$TMP_ROOT/missing-pattern"
 make_fixture "$missing_pattern"
-sed -i '' '/^## 模式提炼$/,/^## 局限$/{ /^## 局限$/!d; }' "$missing_pattern/src/chapters/ch06.md"
+sed_in_place '/^## 模式提炼$/,/^## 局限$/{ /^## 局限$/!d; }' "$missing_pattern/src/chapters/ch06.md"
 expect_fail missing-pattern 'missing pattern extraction section' "$missing_pattern"
 
 invalid_ref="$TMP_ROOT/invalid-ref"
@@ -209,62 +219,62 @@ expect_fail invalid-source-reference 'invalid source reference' "$invalid_ref"
 
 below_budget="$TMP_ROOT/below-budget"
 make_fixture "$below_budget"
-sed -i '' 's/x//g' "$below_budget/src/chapters/ch01.md"
+sed_in_place 's/x//g' "$below_budget/src/chapters/ch01.md"
 expect_fail below-budget 'chapter below configured character budget' "$below_budget"
 
 missing_worked_case="$TMP_ROOT/missing-worked-case"
 make_fixture "$missing_worked_case"
-sed -i '' '/^## 完整工程案例$/,/^## 反例$/{ /^## 反例$/!d; }' "$missing_worked_case/src/chapters/ch02.md"
+sed_in_place '/^## 完整工程案例$/,/^## 反例$/{ /^## 反例$/!d; }' "$missing_worked_case/src/chapters/ch02.md"
 expect_fail missing-worked-case 'missing worked case section' "$missing_worked_case"
 
 too_few_exercises="$TMP_ROOT/too-few-exercises"
 make_fixture "$too_few_exercises"
-sed -i '' '/^- 为反例添加回归证据。$/d; /^- 说明验证的环境边界。$/d' "$too_few_exercises/src/chapters/ch03.md"
+sed_in_place '/^- 为反例添加回归证据。$/d; /^- 说明验证的环境边界。$/d' "$too_few_exercises/src/chapters/ch03.md"
 expect_fail too-few-exercises 'fewer than 3 exercises' "$too_few_exercises"
 
 missing_proof_boundary="$TMP_ROOT/missing-proof-boundary"
 make_fixture "$missing_proof_boundary"
-sed -i '' '/^## 能证明什么／不能证明什么$/,/^## 局限$/{ /^## 局限$/!d; }' "$missing_proof_boundary/src/chapters/ch04.md"
+sed_in_place '/^## 能证明什么／不能证明什么$/,/^## 局限$/{ /^## 局限$/!d; }' "$missing_proof_boundary/src/chapters/ch04.md"
 expect_fail missing-proof-boundary 'missing proof boundary section' "$missing_proof_boundary"
 
 missing_artifact="$TMP_ROOT/missing-artifact"
 make_fixture "$missing_artifact"
-sed -i '' '/^## 可复用工件$/,/^## 练习$/{ /^## 练习$/!d; }' "$missing_artifact/src/chapters/ch05.md"
+sed_in_place '/^## 可复用工件$/,/^## 练习$/{ /^## 练习$/!d; }' "$missing_artifact/src/chapters/ch05.md"
 expect_fail missing-artifact 'missing reusable artifact section' "$missing_artifact"
 
 missing_counterexample="$TMP_ROOT/missing-counterexample"
 make_fixture "$missing_counterexample"
-sed -i '' '/^## 反例$/,/^## 可复用工件$/{ /^## 可复用工件$/!d; }' "$missing_counterexample/src/chapters/ch06.md"
+sed_in_place '/^## 反例$/,/^## 可复用工件$/{ /^## 可复用工件$/!d; }' "$missing_counterexample/src/chapters/ch06.md"
 expect_fail missing-counterexample 'missing counterexample section' "$missing_counterexample"
 
 missing_evidence_comment="$TMP_ROOT/missing-evidence-comment"
 make_fixture "$missing_evidence_comment"
-sed -i '' '/^<!-- source: AGENTS.md -->$/d' "$missing_evidence_comment/src/chapters/ch07.md"
+sed_in_place '/^<!-- source: AGENTS.md -->$/d' "$missing_evidence_comment/src/chapters/ch07.md"
 expect_fail missing-evidence-comment 'missing evidence comment' "$missing_evidence_comment"
 
 missing_proof_table_row="$TMP_ROOT/missing-proof-table-row"
 make_fixture "$missing_proof_table_row"
-sed -i '' '/^| 门禁夹具结构完整 | 正文事实真实 |$/d' "$missing_proof_table_row/src/chapters/ch08.md"
+sed_in_place '/^| 门禁夹具结构完整 | 正文事实真实 |$/d' "$missing_proof_table_row/src/chapters/ch08.md"
 expect_fail missing-proof-table-row 'missing substantive proof boundary row' "$missing_proof_table_row"
 
 too_few_primary_evidence="$TMP_ROOT/too-few-primary-evidence"
 make_fixture "$too_few_primary_evidence"
-sed -i '' 's/\[E2-TEST\] //' "$too_few_primary_evidence/src/chapters/ch09.md"
+sed_in_place 's/\[E2-TEST\] //' "$too_few_primary_evidence/src/chapters/ch09.md"
 expect_fail too-few-primary-evidence 'fewer than 3 primary evidence references' "$too_few_primary_evidence"
 
 e4_only_evidence="$TMP_ROOT/e4-only-evidence"
 make_fixture "$e4_only_evidence"
-sed -i '' 's/\[E1-PAPER\] \[E2-SOURCE\] \[E2-TEST\] \[E4-SYNTHESIS\]/[E4-ONE] [E4-TWO] [E4-THREE]/' "$e4_only_evidence/src/chapters/ch10.md"
+sed_in_place 's/\[E1-PAPER\] \[E2-SOURCE\] \[E2-TEST\] \[E4-SYNTHESIS\]/[E4-ONE] [E4-TWO] [E4-THREE]/' "$e4_only_evidence/src/chapters/ch10.md"
 expect_fail e4-only-evidence 'fewer than 3 primary evidence references' "$e4_only_evidence"
 
 too_many_primary_evidence="$TMP_ROOT/too-many-primary-evidence"
 make_fixture "$too_many_primary_evidence"
-sed -i '' 's/\[E1-PAPER\] \[E2-SOURCE\] \[E2-TEST\] \[E4-SYNTHESIS\]/[E1-PAPER] [E1-SECOND] [E1-THIRD] [E2-SOURCE] [E2-TEST] [E2-THIRD] [E3-PRODUCTION]/' "$too_many_primary_evidence/src/chapters/ch11.md"
+sed_in_place 's/\[E1-PAPER\] \[E2-SOURCE\] \[E2-TEST\] \[E4-SYNTHESIS\]/[E1-PAPER] [E1-SECOND] [E1-THIRD] [E2-SOURCE] [E2-TEST] [E2-THIRD] [E3-PRODUCTION]/' "$too_many_primary_evidence/src/chapters/ch11.md"
 expect_fail too-many-primary-evidence 'more than 6 primary evidence references' "$too_many_primary_evidence"
 
 whole_book_under_budget="$TMP_ROOT/whole-book-under-budget"
 make_fixture "$whole_book_under_budget"
-sed -i '' 's/x//g' "$whole_book_under_budget/src/preface.md" "$whole_book_under_budget/src/appendices"/*.md
+sed_in_place 's/x//g' "$whole_book_under_budget/src/preface.md" "$whole_book_under_budget/src/appendices"/*.md
 expect_fail whole-book-under-budget 'book below configured character budget' "$whole_book_under_budget"
 
 whole_book_over_budget="$TMP_ROOT/whole-book-over-budget"

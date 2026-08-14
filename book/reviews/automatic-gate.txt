@@ -1,6 +1,6 @@
 Expanded-edition automatic gate
-Timestamp: 2026-08-15T06:45:37+0800 (Asia/Shanghai)
-Candidate base: c398ede06e76c66341fd44e78ba2513d505a7371 plus final review fixes in this working tree
+Timestamp: 2026-08-15T06:52:20+0800 (Asia/Shanghai)
+Candidate: a725164f20ad33755e40dc3fc00ce205d087999f plus CI portability fix in this working tree
 Source baseline: d8bee62c1ddc227d5e4385d80bbf6d7dee266a41
 Paper baseline: arXiv:2608.07135
 
@@ -33,6 +33,10 @@ Commands and results
 6. BOOK_SOURCE_ROOT=/Users/zhangalex/Work/Projects/consult/coreutils bash book/scripts/check-book.sh --root book
    Exit: 0
    Result: PASS: book quality gate (full)
+
+7. docker run --rm -v <worktree>:/repo:ro -w /repo rust:bookworm bash book/tests/test_book_quality.sh
+   Exit: 0
+   Result: PASS under Linux/GNU sed; the test suite uses a portable temporary-file rewrite helper.
 
 Manuscript metrics
 ==================
