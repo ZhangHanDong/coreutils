@@ -60,7 +60,7 @@
 - **E3-AUDIT-UPDATE**：Ubuntu Foundations，[*An update on rust-coreutils*](https://discourse.ubuntu.com/t/an-update-on-rust-coreutils/80773/1)，总结发布于 2026-04-22；审计事件分为 2025-12 至 2026-01、2026-02 至 2026-03 两阶段，支持 113 项发现、0.8.0 修复进展以及截至该文时 26.04 中 `cp`、`mv`、`rm` 的 GNU 保留。
 - **E3-RELEASE-26.04**：[Ubuntu 26.04 LTS summary](https://documentation.ubuntu.com/release-notes/26.04/summary-for-lts-users/)，正式发行事件日为 2026-04-23；支持 rust-coreutils 为默认 provider、兼容回退仍在，且三个文件操作工具暂用 GNU。
 - **E3-SECURITY-26.04**：[Ubuntu 26.04 LTS security updates](https://ubuntu.com/blog/ubuntu-26-04-lts-security-updates)，发布于 2026-04-10；将内存安全实现的采用与成熟度绑定，并说明先在 interim release 验证、再进入 LTS 的阶段方向。
-- **E3-KNOWN-RISKS**：[Ubuntu 26.04 changes](https://documentation.ubuntu.com/release-notes/26.04/changes-since-previous-interim/)，核验于本版证据截止日前；支持已知 ACL 行为问题与 rust-coreutils CVE 清单。
+- **E3-KNOWN-RISKS**：[Ubuntu 26.04 LTS changes since 25.10](https://documentation.ubuntu.com/release-notes/26.04/changes-since-previous-interim/)；`published_at=unknown`（官方页面未暴露独立发布日期），`last_updated_at=2026-05-06`，`verified_at=2026-08-14`。适用范围：页面整体适用于 Ubuntu 26.04 LTS 相对 25.10 的变化；POSIX ACL 条目明确说明问题也存在于 Ubuntu 25.10，`rust-coreutils` 漏洞清单以“This release”限定于 Ubuntu 26.04 LTS。
 
 E3 时间字段遵循“事件日与发布日期分列”：发行事件取官方 schedule/公告，后续总结的发布日期只说明信息何时公开。E3 提供发生了什么；E4 才把 shadow、canary、kill switch 和 rollback drill 组织成可迁移方法，两层不得合写成“Ubuntu 采用了本书流水线”。
 
@@ -77,7 +77,7 @@ E3 时间字段遵循“事件日与发布日期分列”：发行事件取官�
 
 ## 术语表
 
-- **行为契约（behavior contract）**：对输入、输出、退出状态、副作用、错误与平台差异的可观察约束。
+- **行为契约（behavior contract）**：第 3 章规范的七字段 `K=(I,O,X,S,E,P,U)`，分别覆盖输入/前态、输出通道、退出/信号/超时、状态转移、环境、平台能力、非确定性/未知，并要求独立的 `non_goals`。
 - **oracle**：对同一输入给出期望观察结果的参考机制；它可能是旧实现、规范、黄金文件或性质断言。
 - **clean room**：实现团队不接触禁止来源代码，只依据允许的规范和黑盒行为独立实现。
 - **differential testing**：对同一输入运行多个实现并比较观察结果。

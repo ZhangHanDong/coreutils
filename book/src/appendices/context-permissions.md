@@ -127,7 +127,7 @@ stateDiagram-v2
 
 ## Manifest 的完整生命周期
 
-一个 Context Manifest 不是任务开头签一次的免责声明，而是有版本、有状态、有清理证明的控制对象。推荐状态为 `Draft -> Approved -> Active -> Paused -> Active -> Closing -> Closed`；`Quarantined` 可以从任何执行状态进入，且只有指定的人类处置者能离开。
+一个 Context Manifest 不是任务开头签一次的免责声明，而是有版本、有状态、有清理证明的控制对象。推荐正常路径为 `Draft -> Approved -> Active -> Paused/Closing -> Closed`；只有 `Active` 会发生工具访问，因此只有它能因禁止内容暴露进入 `Quarantined`。权限变更时旧版本从 `Paused` 进入 `Superseded`，新版本另行从 `Draft` 审批；只有指定的人类处置者能关闭隔离版本。
 
 ### 1. 创建与审批
 
@@ -171,8 +171,10 @@ stateDiagram-v2
     Draft --> Approved: owner + policy review
     Approved --> Active: bind run/revision/tool policy
     Active --> Paused: scope change or review trigger
-    Paused --> Approved: issue superseding version
-    Approved --> Active: resume with new run ID
+    Paused --> Approved: resume unchanged manifest
+    Paused --> Superseded: replacement version approved
+    Superseded --> Closed: archive immutable history
+    Approved --> Active: bind a new run ID
     Active --> Quarantined: prohibited exposure
     Quarantined --> Closed: human disposition
     Active --> Closing: task work stops
@@ -206,7 +208,7 @@ closure:
 
 ### 5. 污染与异常关闭
 
-意外读取禁止来源时立即进入 `Quarantined`。日志只保存定位暴露所需的元数据，不复制敏感正文；写权限和网络访问被撤销；从暴露时刻以后生成的补丁、测试、摘要及其派生物形成隔离集合。clean-room 污染是否能恢复是法律与治理决定，不能由 Agent 删除几段文本后自行继续。
+`Active` run 意外读取禁止来源时立即进入 `Quarantined`；其他状态没有工具访问，不声称存在同一转换。日志只保存定位暴露所需的元数据，不复制敏感正文；写权限和网络访问被撤销；从暴露时刻以后生成的补丁、测试、摘要及其派生物形成隔离集合。clean-room 污染是否能恢复是法律与治理决定，不能由 Agent 删除几段文本后自行继续。
 
 处置结论可以是：证明访问未发生、废弃隔离集合后从干净基线重启、扩大授权并承认任务性质改变，或彻底终止。每种结论都需要 decision ID、批准角色和受影响工件列表。安全事件还应遵循组织的 incident response，而不是只留在迁移仓库。
 

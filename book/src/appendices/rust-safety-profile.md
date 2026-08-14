@@ -72,7 +72,7 @@ uutils 在 workspace 层统一 lint，并通过 `deny.toml` 管理 advisory、�
 
 ## 与统一 DoD Profile 组合
 
-本书只使用第 13 章定义的五种可组合 Profile：Mechanical、Local Behavior、Shared Core、Safety Critical、Release Default。Safety Profile 不另造“普通/共享/生产”三级：引入 `unsafe`、FFI、删除、覆盖、权限、身份、时间或更新链路时增加 `safety_critical`；修改公共错误、路径或平台抽象时增加 `shared_core`；改变默认 provider 或大范围流量时再增加 `release_default`。例如局部 FFI 修复可以是 `[local_behavior, safety_critical]`，并不会被错误提升为默认发布；共享 safe-Rust 重构也可以是 `[shared_core]`。命中多个 Profile 时取门禁并集。
+本书只引用第 13 章 `chapter-13/profile-schema-v1` 的五个可组合枚举：`mechanical | local_behavior | shared_core | safety_critical | release_default`。Safety Profile 不另造“普通/共享/生产”三级：引入 `unsafe`、FFI、删除、覆盖、权限、身份、时间或更新链路时增加 `safety_critical`；修改公共错误、路径或平台抽象时增加 `shared_core`；改变默认 provider 或大范围流量时再增加 `release_default`。例如局部 FFI 修复可以是 `[local_behavior, safety_critical]`，并不会被错误提升为默认发布；共享 safe-Rust 重构也可以是 `[shared_core]`。命中多个 Profile 时取门禁并集。
 
 ## 五个安全维度的执行表
 
@@ -177,4 +177,4 @@ uutils 在 workspace 层统一 lint，并通过 `deny.toml` 管理 advisory、�
 
 ## 审查结论
 
-每项只能标记为 `Pass`、`Fail`、`Not applicable` 或 `Unverified`。`Unverified` 不是较弱的通过；它必须阻断发布，或附带有到期时间、风险所有者和回滚措施的书面豁免。最终结论应说明 Safety Profile 覆盖了哪些错误类别，又没有覆盖哪些语义与运行风险。诚实的边界比笼统的“Rust 更安全”更有工程价值。
+每项只能标记为 `Pass`、`Fail`、`Unverified` 或 `N/A`。`N/A` 必须有触发规则、理由与确认人；`Unverified` 不是较弱的通过。`Fail/Unverified` 默认阻断，只有人类 `Waive` 创建范围受限、到期且可回退的例外时，验证依据才可记为 `LimitedWithWaiver`，原状态不改变。最终结论应说明 Safety Profile 覆盖了哪些错误类别，又没有覆盖哪些语义与运行风险。

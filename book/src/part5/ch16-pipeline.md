@@ -92,7 +92,7 @@ flowchart TB
 
 迁移顺序不是按源文件大小排列。可用一个投资组合评分：业务价值、行为可发现性、状态破坏性、平台扩散、共享依赖和恢复成本。高价值、易发现、低破坏单元优先；共享层被多个已迁移单元真实重复需要时再演化。若先建设“大一统 uucore”，每个错误契约都会同时污染未来 utility。
 
-共享能力的晋升要经历三态：先在 utility 局部实现并验证；第二个异质 utility 复用概念但保持独立；当两个以上契约证明前提和错误语义相同，再提取共享接口。共享变更自动组合 Shared Core Profile，运行代表消费者与平台矩阵。代码重复的短期成本，通常低于过早抽象造成的全局返工。
+共享能力的晋升要经历三态：先在 utility 局部实现并验证；第二个异质 utility 复用概念但保持独立；当两个以上契约证明前提和错误语义相同，再提取共享接口。共享变更自动组合 `shared_core` Profile，运行代表消费者与平台矩阵。代码重复的短期成本，通常低于过早抽象造成的全局返工。
 
 并行工作只发生在契约、允许修改集、测试夹具和共享前提互不冲突时。两个 Agent 可以分别处理不同 utility 的独立解析分支；不能同时修改共享错误模型并各自假设另一版接口。项目控制面维护依赖图和“共享热点锁”，冲突时按证据成熟度排队，而不是让合并冲突替架构做决定。
 
@@ -103,7 +103,7 @@ flowchart LR
     P --> L["局部能力已验证"]
     L --> H{"第二个异质场景前提相同？"}
     H -->|"否"| K["保持局部差异"]
-    H -->|"是"| C["共享层候选+Shared Core Profile"]
+    H -->|"是"| C["共享层候选 + shared_core Profile"]
     C --> M["代表消费者/target/feature 矩阵"]
     M --> N["下一批原子 utility"]
 ```
@@ -152,15 +152,15 @@ flowchart LR
 
 ## 完整工程案例
 
-组织选择只读命令 `manifest-list` 作为首个切片：它遍历制品目录并输出稳定清单，被发布脚本真实消费，旧二进制可黑盒执行，失败时可即时切回。阶段 1 盘点出三个调用方、Linux 与 macOS、普通/非 UTF-8 路径和一个月度审计作业；风险为 Local Behavior，若共享路径模块变化则追加 Shared Core。
+组织选择只读命令 `manifest-list` 作为首个切片：它遍历制品目录并输出稳定清单，被发布脚本真实消费，旧二进制可黑盒执行，失败时可即时切回。阶段 1 盘点出三个调用方、Linux 与 macOS、普通/非 UTF-8 路径和一个月度审计作业；风险为 `local_behavior`，若共享路径模块变化则追加 `shared_core`。
 
-阶段 2 把行为写成七字段契约：参数重复优先级、stdout 原始字节、stderr 类别、退出码、无写副作用、路径/locale 前提和允许排序差异。黑盒发现同一文件名在两个 locale 下排序不同；契约 owner 决定不锁定本地化排序，而要求 `--stable` 模式字节排序。阶段 3 的 Manifest 允许规范、黑盒执行包和候选仓库，禁止参考源码与原始客户目录；所有真实轨迹先脱敏。
+阶段 2 按第 3 章写完整 `K=(I,O,X,S,E,P,U)`：`I` 固定参数/前态，`O` 规定 stdout 原始字节与 stderr 类别，`X` 固定退出/超时，`S` 要求无写副作用，`E/P` 固定路径、locale 与平台能力，`U` 记录允许排序差异与未知；`non_goals` 另列性能和未支持平台。黑盒发现同一文件名在两个 locale 下排序不同；契约 owner 决定不锁定本地化排序，而要求 `--stable` 模式字节排序。阶段 3 的 Manifest 允许规范、黑盒执行包和候选仓库，禁止参考源码与原始客户目录；所有真实轨迹先脱敏。
 
 阶段 4 只建立 utility crate、进程入口和局部路径适配器，不先抽共享模块。阶段 5 把第一个任务切成“`--stable` 对非 UTF-8 文件名按原始字节排序并保持空 stderr”；停止条件是需要改变公共错误接口或 macOS 无法构造样本。阶段 6 中 Agent 先提交 red 进程测试，再提交最小排序实现；访问回执显示未越界，静态门禁通过。
 
-阶段 7 的双沙箱差分发现退出码一致、清单字节一致，但候选在不可读子目录上多输出一条 stdout 提示。人类将其分类为候选缺陷而非“更友好信息”，因为 stdout 被脚本解析；反例最小化后回到阶段 5，新任务只修通道。macOS 非 UTF-8 样本无法合法构造，被明确标为平台不适用，而不是伪造通过；另一个权限差异保持 Unverified 并阻断 macOS 默认。
+阶段 7 的双沙箱差分发现退出码一致、清单字节一致，但候选在不可读子目录上多输出一条 stdout 提示。人类将其分类为候选缺陷而非“更友好信息”，因为 stdout 被脚本解析；反例最小化后回到阶段 5，新任务只修通道。macOS 非 UTF-8 样本无法合法构造，经触发规则与平台 owner 确认为 `N/A`，而不是伪造通过；另一个权限差异保持 `Unverified` 并阻断 macOS 默认。
 
-阶段 8 形成 Change Package，Local Behavior Profile 通过；审稿人能从契约追到两次 red/green 和 diff。阶段 9 先 shadow 真实脱敏目录，候选结果不返回下游；internal canary 在两个可恢复 runner 上运行，kill switch 以 job 为粘性单位。月度审计作业出现一次内存峰值超预算，扩流停留，Agent 协助聚类但性能 owner 决定优化任务。修复后重走 5–9，并完成切回旧产物的 drill。
+阶段 8 形成 Change Package，`local_behavior` Profile 的适用 requirement 为 `Pass/N/A`；审稿人能从契约追到两次 red/green 和 diff，并单独记录 `Approve` 决定。阶段 9 先 shadow 真实脱敏目录，候选结果不返回下游；internal canary 在两个可恢复 runner 上运行，kill switch 以 job 为粘性单位。月度审计作业出现一次内存峰值超预算，扩流停留，Agent 协助聚类但性能 owner 决定优化任务。修复后重走 5–9，并完成切回旧产物的 drill。
 
 阶段 10 观察两个审计周期后，Linux 成为默认；macOS 因权限语义未知继续旧实现。生产发现一个带换行文件名使日志聚合误分行，但清单字节正确。团队没有改 utility 输出，而是更新观测编码与下游测试。最终结论是“Linux 声明范围 Observed，macOS 共存”，并把第二个切片选为有状态的归档命令，以检验恢复与共享路径假设。
 
@@ -227,7 +227,10 @@ metrics:
   flow: ["counterexample-to-regression", "rework-stage", "diff-triage-age"]
   readiness: ["unverified-age", "drill-freshness", "backup-owner-coverage"]
 governance:
-  profile_registry: "DOD-PROFILES-v1"
+  profile_schema_ref: "chapter-13/profile-schema-v1"
+  requirement_status_enum: ["Pass", "Fail", "Unverified", "N/A"]
+  verification_basis_enum: ["Direct", "LimitedWithWaiver"]
+  human_decision_enum: ["Approve", "Reject", "Waive"]
   exception_ledger: "WAIVERS-v1"
   stop_authority: ["contract", "source_security", "release_service"]
 ```

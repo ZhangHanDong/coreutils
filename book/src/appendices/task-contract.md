@@ -1,6 +1,6 @@
 # 附录 B：迁移 Task Contract 模板
 
-Task Contract 是给人和 Agent 共同使用的执行边界。它应在编码之前完成，在 Change Package 中原样保留。下面模板适合单一行为意图；如果一个任务需要多个互不依赖的意图，应拆成多个契约，而不是继续增加“顺便修改”。[E4-ATOMICITY]
+Task Contract 是人和 Agent 的执行边界，应在编码前完成并随 Change Package 保留。多个独立意图必须拆成多个契约。[E4-ATOMICITY]
 
 ## 可复制模板
 
@@ -12,24 +12,30 @@ title: "用一句话描述唯一行为意图"
 intent:
   current_observation: "当前可重复观察到什么"
   desired_behavior: "候选实现应满足什么行为"
-  non_goals:
-    - "本任务明确不处理的相邻问题"
 
 behavior_contract:
-  inputs:
+  schema: "behavior-contract/v1"
+  contract_id: "BC-MIG-UTILITY-001"
+  input:                              # I
     argv: []
     stdin: "字节、文本或无输入"
-    filesystem_fixture: "初始文件树与权限"
-    environment: {}
-    platform: "OS / architecture / filesystem"
-  observables:
+    pre_state: "初始文件树、权限与其他前态"
+  output:                             # O
     stdout: "exact | normalized | ignored，并说明规则"
     stderr: "exact | normalized | informative-only"
-    exit_status: "精确值或允许集合"
-    filesystem_effects: "路径、内容、权限、时间与原子性"
-    timing_or_resource_limits: "仅在属于契约时填写"
-  allowed_variance:
-    - "已证明可接受的差异及理由"
+  exit_status: "精确 code/signal/timeout 或允许集合"  # X
+  side_effects: "路径、内容、权限、时间、原子性与失败后状态" # S
+  environment:                       # E
+    cwd: "固定值或矩阵"
+    locale: "固定值或矩阵"
+    timezone: "固定值、矩阵或 N/A（附理由）"
+    umask: "固定值或矩阵"
+  platform: "OS / architecture / filesystem / capability 矩阵" # P
+  nondeterminism:                    # U
+    allowed_variance: ["已证明可接受的差异及比较器"]
+    unknown_behavior: ["未知项、收敛实验、owner、期限与发布处理"]
+  non_goals:
+    - "本任务明确不处理的相邻行为"
 
 context_boundary:
   may_read:
@@ -77,8 +83,12 @@ ownership:
   approval_required_for: []
 
 completion:
-  definition_of_done_profiles:
+  profile_schema_ref: "chapter-13/profile-schema-v1"
+  selected_profiles:
     - "mechanical | local_behavior | shared_core | safety_critical | release_default"
+  requirement_status_enum: ["Pass", "Fail", "Unverified", "N/A"]
+  verification_basis_enum: ["Direct", "LimitedWithWaiver"]
+  human_decision_enum: ["Approve", "Reject", "Waive"]
   unverified_policy: "显式阻断或批准豁免"
 ```
 
@@ -86,59 +96,17 @@ completion:
 
 `current_observation` 必须是可复现事实，不能写成“似乎不兼容”。`desired_behavior` 应描述外部可观察结果，不预设内部实现。`non_goals` 是控制 Agent 搜索空间的关键字段：例如修复退出码时，明确不统一所有错误文案、不升级依赖、不重排模块。[E4-SEARCHER]
 
-`observables` 的每一项都必须选择比较策略。二进制输出、路径字节和 locale 相关文本不能在未论证时强行转成 UTF-8；stderr 是否精确兼容要服从项目目标，而不是默认忽略。文件系统副作用至少考虑存在性、内容、权限、链接、时间戳和失败后的部分状态。第 3 章的行为六元组可直接作为填写检查。
+`behavior_contract` 必须完整实现第 3 章七字段 `K=(I,O,X,S,E,P,U)`，并把 `non_goals` 作为必填项；Task Contract 不得用“inputs + observables”缩略结构替代它。二进制输出、路径字节和 locale 相关文本不能在未论证时强行转成 UTF-8；stderr 是否精确兼容要服从项目目标。副作用至少考虑存在性、内容、权限、链接、时间戳和失败后的部分状态，未知与允许非确定性进入 `U`。
 
-`context_boundary` 不只是 clean-room 声明，还涵盖私有客户数据、凭证、漏洞材料和第三方许可证。允许列表最好具体到文件或数据类别；“可读整个仓库”通常过宽。执行过程中若发现必须访问未列来源，Agent 应停止该分支并请求人类扩展契约，不能自行把来源加入上下文。[E2-CLEANROOM][E4-CONTEXT-BOUNDARY]
+`context_boundary` 同时约束 clean-room、私有数据、凭证、漏洞与许可证；允许项具体到文件或数据类别。需要未列来源时先停止并请求扩权，Agent 不得自行加入。[E2-CLEANROOM][E4-CONTEXT-BOUNDARY]
 
-`verification` 要同时定义命令和证据。只写“运行测试”无法复核；应给出选择器、feature、平台、oracle 版本和比较字段。对于差分发现，先证明回归测试在修复前失败，再证明修复后通过。对于共享或生产关键变更，要列出未运行的平台，不能把编译成功折算为运行验证。
+`verification` 同时给出选择器、feature、平台、oracle 版本、比较字段和证据；差分修复保存同一回归的 red/green。共享或生产关键变更列明未运行平台，编译成功不折算为运行验证。
 
-`ownership` 使责任可追踪。Agent 可以提出实现、生成候选测试和整理结果，但人类所有者需要理解补丁、解释行为选择并回应评审。这与 uutils 对 AI 贡献和人类责任的明确要求一致。[E2-AI-OWNERSHIP][E2-AI-POLICY]
-
-## 极简示例片段：虚构 utility 的退出码
-
-下面是明确虚构的 `example` utility 片段，用来演示字段之间的关系，不声称任何真实命令具有该退出码。实际 Change Package 仍需填写上面的完整模板。
-
-```yaml
-task_id: "MIG-EXAMPLE-017"
-title: "假设契约：缺失输入文件时保持退出码 2"
-intent:
-  current_observation: "在已固定的虚构夹具中 oracle=2、candidate=1"
-  desired_behavior: "给定最小输入时 candidate 返回 2"
-  non_goals: ["统一 stderr 文案", "重构共享错误类型"]
-behavior_contract:
-  inputs: {argv: ["missing"], platform: "linux-x86_64 test image"}
-  observables: {stdout: "exact empty", stderr: "semantic category", exit_status: 2, filesystem_effects: "none"}
-context_boundary:
-  may_read: ["公开 CLI 规范", "黑盒观测", "candidate Rust 源码"]
-  must_not_read: ["参考实现源码"]
-change_boundary:
-  allowed_paths: ["src/uu/example", "tests/by-util/test_example.rs"]
-control_flow:
-  stop_conditions: ["需要修改共享错误接口", "无法重放 oracle"]
-  escalation_owner: "utility maintainer"
-verification:
-  reproduction_command: "harness replay cases/exit-017.json"
-  tests_required: ["test_missing_input_exit_2"]
-  static_gates: ["cargo fmt --check", "cargo clippy -p uu_example --tests"]
-  platform_matrix: ["linux-x86_64"]
-risk:
-  blast_radius: "direct"
-  known_unknowns: ["其他平台尚未执行"]
-  rollback: "撤销该原子提交"
-ownership:
-  human_owner: "utility maintainer"
-  reviewer: "compatibility reviewer"
-  approval_required_for: ["扩大平台范围", "改变退出码契约"]
-completion:
-  definition_of_done_profiles: ["local_behavior"]
-  unverified_policy: "阻断合并"
-```
-
-一个好契约应让另一位评审者在不访问聊天历史的情况下回答五个问题：为什么改、允许读什么、允许改哪里、怎样证明、谁承担责任。若答案依赖 Agent 的隐含上下文，契约仍不完整。
+`ownership` 记录能解释补丁、行为选择并回应评审的人类所有者；Agent 只能生成候选与整理证据。[E2-AI-OWNERSHIP][E2-AI-POLICY]
 
 ## 三个风险级别的完整应用
 
-这里的“低、中、高”只描述本次任务的爆炸半径，不替代第 13 章的 Profile。真正执行时仍填写 `definition_of_done_profiles` 数组；风险变化会触发重新签约，而不是沿用最初标签。
+“低、中、高”只描述爆炸半径；执行仍引用 `chapter-13/profile-schema-v1` 的 `selected_profiles`，风险变化即重新签约。
 
 ### 低风险：局部解析错误
 
@@ -151,21 +119,21 @@ title: "拒绝 --width= 的空值并保持既有诊断类别"
 intent:
   current_observation: "固定夹具下空值被接受，进程返回 0"
   desired_behavior: "空值在任何 I/O 前被拒绝，返回契约值 1"
-  non_goals: ["重写参数解析器", "统一所有数值诊断"]
 behavior_contract:
-  inputs:
+  schema: "behavior-contract/v1"
+  input: # I
     argv: ["--width="]
     stdin: "empty"
-    filesystem_fixture: "empty temporary directory"
-    environment: {LC_ALL: "C"}
-    platform: "linux-x86_64 fixture LOCAL-021"
-  observables:
+    pre_state: "empty temporary directory"
+  output: # O
     stdout: "exact empty"
     stderr: "diagnostic category INVALID_WIDTH；动态程序名前缀归一化"
-    exit_status: "exact 1"
-    filesystem_effects: "none"
-    timing_or_resource_limits: "N/A"
-  allowed_variance: ["绝对临时目录映射为 <TMP>"]
+  exit_status: "exact 1" # X
+  side_effects: "none" # S
+  environment: {LC_ALL: "C", cwd: "isolated tempdir"} # E
+  platform: "linux-x86_64 fixture LOCAL-021" # P
+  nondeterminism: {allowed_variance: ["绝对临时目录映射为 <TMP>"], unknown_behavior: ["其他 locale"]} # U
+  non_goals: ["重写参数解析器", "统一所有数值诊断"]
 context_boundary:
   may_read: ["公开 CLI 规范", "fixture LOCAL-021", "目标 utility Rust 模块与测试"]
   must_not_read: ["参考实现源码", "生产日志"]
@@ -192,7 +160,7 @@ risk:
   known_unknowns: ["其他 locale 未运行"]
   rollback: "撤销单一补丁；不涉及数据恢复"
 ownership: {human_owner: "utility maintainer", reviewer: "compatibility reviewer", agent_role: "实现与证据整理", approval_required_for: ["契约变化"]}
-completion: {definition_of_done_profiles: ["local_behavior"], unverified_policy: "阻断合并"}
+completion: {profile_schema_ref: "chapter-13/profile-schema-v1", selected_profiles: ["local_behavior"], unverified_policy: "阻断合并"}
 ```
 
 ### 中风险：共享路径抽象
@@ -206,11 +174,16 @@ title: "共享路径诊断保留 OS 原生字节"
 intent:
   current_observation: "共享 helper 提前转 UTF-8，代表 utility 对非 UTF-8 路径失败"
   desired_behavior: "路径留在 OsStr/Path 边界；调用者按契约输出或传播"
-  non_goals: ["全仓诊断重写", "新增编码依赖", "改变公开 CLI 文案"]
 behavior_contract:
-  inputs: {argv: ["<NON_UTF8_PATH>"], stdin: "none", filesystem_fixture: "含非 UTF-8 名称与符号链接", environment: {LC_ALL: "C"}, platform: "Unix run；Windows compile-only"}
-  observables: {stdout: "per utility", stderr: "原始路径字节不得被替换为错误字符", exit_status: "按代表用例固定", filesystem_effects: "失败前后树一致", timing_or_resource_limits: "N/A"}
-  allowed_variance: ["OS error 文本按已批准 category 比较"]
+  schema: "behavior-contract/v1"
+  input: {argv: ["<NON_UTF8_PATH>"], stdin: "none", pre_state: "含非 UTF-8 名称与符号链接"} # I
+  output: {stdout: "per utility", stderr: "原始路径字节不得被替换为错误字符"} # O
+  exit_status: "按代表用例固定" # X
+  side_effects: "失败前后树一致" # S
+  environment: {LC_ALL: "C", cwd: "isolated fixture"} # E
+  platform: "Unix run；Windows compile-only" # P
+  nondeterminism: {allowed_variance: ["OS error 文本按已批准 category 比较"], unknown_behavior: ["Windows runtime"]} # U
+  non_goals: ["全仓诊断重写", "新增编码依赖", "改变公开 CLI 文案"]
 context_boundary:
   may_read: ["共享路径模块", "直接消费者清单", "代表 utility 测试", "公开平台 API 文档"]
   must_not_read: ["参考实现源码", "未清理客户路径"]
@@ -237,7 +210,7 @@ risk:
   known_unknowns: ["Windows 非 UTF-8 语义不同且未运行"]
   rollback: "先撤代表消费者，再撤兼容接口；不得留下半迁移 API"
 ownership: {human_owner: "shared-core owner", reviewer: "platform reviewer", agent_role: "接口候选与调用者迁移", approval_required_for: ["扩大消费者", "安全 profile 升级"]}
-completion: {definition_of_done_profiles: ["shared_core"], unverified_policy: "Windows 保持显式 Unverified，阻断声称全平台完成"}
+completion: {profile_schema_ref: "chapter-13/profile-schema-v1", selected_profiles: ["shared_core"], unverified_policy: "Windows 保持显式 Unverified，阻断声称全平台完成"}
 ```
 
 ### 高风险：删除 provider 的默认切换
@@ -251,11 +224,16 @@ title: "将受限 cohort 的删除命令切换到候选 provider"
 intent:
   current_observation: "shadow 样本满足门限，默认路径仍为旧 provider"
   desired_behavior: "仅 cohort C3 使用候选；任一硬阈值触发自动切回"
-  non_goals: ["全量默认", "改变恢复策略", "放宽差异比较"]
 behavior_contract:
-  inputs: {argv: ["来自脱敏工作负载集合的参数"], stdin: "binary-preserving", filesystem_fixture: "可丢弃快照与攻击性链接/权限夹具", environment: "固定 locale/umask", platform: "生产同构镜像与 cohort 标签"}
-  observables: {stdout: "按用例", stderr: "category+敏感信息扫描", exit_status: "exact/set", filesystem_effects: "目标、非目标、权限、链接和失败残留完整快照", timing_or_resource_limits: "P95 与超时预算"}
-  allowed_variance: ["只有差异登记表批准的字段"]
+  schema: "behavior-contract/v1"
+  input: {argv: ["来自脱敏工作负载集合的参数"], stdin: "binary-preserving", pre_state: "可丢弃快照与攻击性链接/权限夹具"} # I
+  output: {stdout: "按用例", stderr: "category+敏感信息扫描"} # O
+  exit_status: "exact/set；超时进入 X" # X
+  side_effects: "目标、非目标、权限、链接和失败残留完整快照" # S
+  environment: "固定 locale/umask/cwd" # E
+  platform: "生产同构镜像、文件系统能力与 cohort 标签" # P
+  nondeterminism: {allowed_variance: ["只有差异登记表批准的字段", "P95 预算"], unknown_behavior: ["长尾挂载类型"]} # U
+  non_goals: ["全量默认", "改变恢复策略", "放宽差异比较"]
 context_boundary:
   may_read: ["脱敏 replay bundle", "候选代码", "聚合指标", "批准的 rollout 配置"]
   must_not_read: ["原始生产路径/凭证", "参考实现源码"]
@@ -282,7 +260,7 @@ risk:
   known_unknowns: ["长尾挂载类型留在 exclusion list"]
   rollback: "kill switch -> provider 切回 -> cohort 冻结 -> 状态核验；删除数据依靠预先快照恢复"
 ownership: {human_owner: "utility owner", reviewer: "safety reviewer", agent_role: "候选与报告，不持有发布权", approval_required_for: ["开始 canary", "扩流", "豁免", "恢复"]}
-completion: {definition_of_done_profiles: ["local_behavior", "safety_critical", "release_default"], unverified_policy: "任何关键 Unverified 阻断晋级"}
+completion: {profile_schema_ref: "chapter-13/profile-schema-v1", selected_profiles: ["local_behavior", "safety_critical", "release_default"], unverified_policy: "任何关键 Unverified 阻断晋级"}
 ```
 
-三份契约展示了同一个升级原则：新事实改变读权限、写范围、验证矩阵或恢复责任时，先暂停并升版契约，再继续搜索。不能等补丁写完后再把已经发生的扩张补记成“原本计划”。
+新事实改变读权限、写范围、验证矩阵或恢复责任时，先暂停并升版契约；不得事后补记扩张。

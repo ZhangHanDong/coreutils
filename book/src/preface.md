@@ -50,7 +50,7 @@ AI Coding 放大了这个矛盾。模型可以很快地产生一份「看起来�
 
 不要先把 16 章全部抄进组织规范。选择一个小而真实的行为差异，按以下顺序走一遍：
 
-1. 用第 3 章和[附录 B](appendices/task-contract.md)写出行为六元组、非目标、停止条件与验证要求。
+1. 用第 3 章和[附录 B](appendices/task-contract.md)写出七字段 `K=(I,O,X,S,E,P,U)`，将 `non_goals` 作为必填项，并补齐停止条件与验证要求。
 2. 用第 4 章和[附录 C](appendices/context-permissions.md)声明允许来源、禁止来源和实际访问记录；成稿扫描与工具访问审计分别报告。
 3. 用第 5、6 章限定 Rust 接缝和一个可独立决策的补丁，不让“顺便重构”扩大证明责任。
 4. 用第 7—10 章先建立 red/green 回归，再选择静态、集成、差分和 fuzz 证据；未运行项保持 `Unverified`。
