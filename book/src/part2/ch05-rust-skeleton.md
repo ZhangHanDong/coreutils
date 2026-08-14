@@ -12,7 +12,7 @@
 
 ## 概念模型：五层骨架与两条轴
 
-本章用五层表示证明责任，而不是目录审美：
+本章用五层表示证明责任，而不是目录审美；五层骨架与下述两条轴统一标为作者治理模型 [E4-RUST-SKELETON]，不是论文或固定仓库自称的方法：
 
 ```mermaid
 flowchart TB
@@ -37,7 +37,7 @@ flowchart TB
 | 复用轴 | utility-local | workspace-shared | 共同的是代码形状，还是已经证明相同的行为？ |
 | 平台轴 | portable core | target capability | 差异能由通用类型表达，还是必须在目标系统执行验证？ |
 
-抽象位置不是由函数行数决定。两个命令都有“打开文件失败”并不代表诊断、退出码、继续处理策略相同；同一个“rename”名称也不代表跨文件系统、Windows 与 Unix 的提交语义相同。先把行为留在局部，积累至少两个独立用例和相同契约，再上提；这条决策规则是 E4 作者提炼，不是仓库强制的模块数量。
+抽象位置不是由函数行数决定。两个命令都有“打开文件失败”并不代表诊断、退出码、继续处理策略相同；同一个“rename”名称也不代表跨文件系统、Windows 与 Unix 的提交语义相同。先把行为留在局部，积累至少两个独立用例和相同契约，再上提；这条规则属于 [E4-RUST-SKELETON]，不是仓库强制的模块数量。
 
 ## 一手源码走查：从 workspace 到退出状态
 
@@ -89,7 +89,7 @@ workspace 适合集中三类政策：构建身份、已批准依赖版本、共�
 
 ### `path-kind` 从 CLI 到退出的控制流
 
-本案例是合成迁移，不声称固定仓库存在 `path-kind`。行为契约 `BC-PATH-KIND-011` 规定：输入一个原生路径；成功时 stdout 输出最后组件原始字节加换行、stderr 空、exit 0；缺参数属于 usage error，stderr 含语义类别、exit 2；路径不存在时不把“显示失败”与“身份失败”混淆，stderr 使用经批准的可逆显示、exit 1；Unix 非 UTF-8 和 Windows 原生宽路径分别进入平台矩阵。
+本案例是合成迁移，不声称固定仓库存在 `path-kind`。行为契约 `BC-PATH-KIND-011` 规定：输入一个原生路径；Unix outcome 的 stdout 是最后组件原始字节加换行，Windows outcome 则保持 `OsString`/`Path` 身份到输出边界，再使用该平台明确批准的表示与比较器；两者都要求 stderr 空、exit 0。缺参数是 usage error（exit 2）；路径不存在时不把“显示失败”与“身份失败”混淆，stderr 使用各平台批准的显示、exit 1。
 
 ```mermaid
 sequenceDiagram
@@ -108,19 +108,21 @@ sequenceDiagram
         Util->>Core: show + set_exit_code(1)
         Util-->>Entry: Ok(())
     else usage/fatal
-        Util-->>Entry: Err(UError{code})
+        Util-->>Entry: Err(PathKindError::Usage.into())
     end
     Entry->>Core: map result and accumulated code
     Core-->>Proc: stderr/usage + exit status
 ```
 
-**第一版：utility 局部、原生路径。** 团队先创建独立 crate 与薄入口，不修改 `uucore`。parser 接收 `OsString`，内部保留 `PathBuf`；只有 `--mode` 这种规范限定为 ASCII 的枚举参数才转 `str`。成功输出通过 `OsStr` 的平台能力写字节或原生表示，不把路径 identity 存入 `String`。
+图中的 `PathKindError::Usage` 是合成 utility 定义的具体错误变体；它实现 `UError::code()`，再由 `.into()` 转为 `UResult` 所需的 `Box<dyn UError>`。trait 只规定行为，不能直接构造。
+
+**第一版：utility 局部、原生路径。** 团队先创建独立 crate 与薄入口，不修改 `uucore`。parser 接收 `OsString`，内部保留 `PathBuf`；只有 `--mode` 这类规范限定为 ASCII 的枚举参数才转 `str`。Unix 输出边界可按契约取原始字节；Windows 仍保留 `OsString`/`Path`，直到使用该平台声明的输出表示，不能用通用“原生字节”模型代替。
 
 **第二步：错误分类。** utility 定义局部 `PathKindError::{Usage,Missing,Display}`，每个变体实现外部 code；usage 与运行失败分开。第一版反例把所有错误包装为 `USimpleError(1, text)`，虽方便却让缺参数从 2 漂到 1，因此被负控拒绝。团队没有因此立刻上提共享错误，因为只有一个 utility 证明了这组类别。
 
 **第三步：入口矩阵。** 测试分别启动独立命令、以 multicall 名称进入和 `coreutils path-kind`。第一次运行发现后者把 utility 名留在参数迭代器中，parser 把它当 PATH；修复位于入口适配，不在路径算法。若只测 `uumain(vec![path])`，这个缺陷永远不可见。
 
-**第四步：非 UTF-8。** Unix fixture 创建字节名 `some-\xFF-file`，断言 stdout 保留字节。负控把内部实现替换为 `to_string_lossy()`，测试必须失败；这证明断言能看到身份损失。Windows runner 使用原生宽字符串往返，不能复用 Unix 字节构造器后宣称跨平台通过。
+**第四步：平台路径。** Unix fixture 创建字节名 `some-\xFF-file`，按字节断言 stdout；`to_string_lossy()` 负控必须失败。Windows runner 用 `OsString`/`Path` 构造本地合法名称，并断言 Windows outcome 规定的输出表示与路径副作用；它既不复用 Unix 字节 fixture，也不把测试结论表述成泛化的“宽字符串往返”。
 
 **第五步：平台能力。** symlink 分类在目标平台语义不一致，当前任务只承诺 Linux 的 `symlink_metadata` 观察；Windows 项标为 `unknown`，阻断该平台发布，不用 `#[cfg(windows)] return Unsupported` 冒充行为完成。新增平台分支必须先补契约 outcome 与 runner，再进入实现。
 
@@ -138,7 +140,7 @@ sequenceDiagram
 
 ## 可复用工件
 
-下面的 **Rust Skeleton Decision Record** 是 E4 作者工件，可复制到设计 issue：
+下面的 **Rust Skeleton Decision Record** 是受 [E4-RUST-SKELETON] 治理的作者工件，可复制到设计 issue：
 
 ```yaml
 schema: rust-skeleton-decision/v1
@@ -165,7 +167,7 @@ shared_candidates:
     decision: keep_local
 platform:
   - {capability: unix_path_bytes, targets: [linux], state: verified, receipt: T-UNIX-FF}
-  - {capability: windows_native_path, targets: [windows], state: unknown, disposition: block_target}
+  - {capability: windows_native_path_representation, targets: [windows], state: unknown, disposition: block_target}
 error_bridge:
   success: 0
   runtime_missing: 1
@@ -184,7 +186,7 @@ verification:
   negative_controls: [lossy_path, all_errors_exit_1, extra_multicall_arg]
 proof_boundary:
   demonstrated: [three_entries, exit_0_1_2, linux_path_bytes]
-  unknown: [windows_native_path, network_fs, races]
+  unknown: [windows_native_path_representation, network_fs, races]
 decision_owner: rust-architecture-owner
 ```
 
@@ -246,12 +248,12 @@ Rust 的保证受语言边界限制。`unsafe`、FFI、内核、文件系统、�
 ## 练习
 
 - **练习一：控制流复核。** 选择一个 utility，从独立入口与 multicall 两条路径画到 `UResult` 和 exit，标出 argv 消费、本地化、stdout/stderr 与非致命状态；设计一个会击穿“只测 `uumain`”的进程测试。
-- **练习二：路径验证。** 为 Unix 非 UTF-8、Windows 原生宽路径和正常 UTF-8 各写一个 contract outcome；设计 lossy 负控和 runner 缺失处置，不能把 skip 算 pass。
+- **练习二：路径验证。** 为 Unix 非 UTF-8、Windows 原生路径及正常 UTF-8 各写一个 contract outcome；分别声明输出表示，设计 lossy 负控和 runner 缺失处置，不能把 skip 算 pass。
 - **练习三：共享决策。** 给出三个看似相同的错误 helper，其中一个允许部分成功。填写 Rust Skeleton Decision Record，决定哪些机制上提、哪些保留局部，并列出共享改动后的最小回归矩阵。
 
 ## 本章证据
 
-本章六项主证据为论文星形架构 [E1-ARCH]、workspace 与 utility 边界 [E2-WORKSPACE]、共享 feature/cfg [E2-UUCORE]、multicall 入口 [E2-MULTICALL]、错误—退出桥 [E2-ERROR-MODEL] 与 Rust 路径／unsafe 规则 [E2-RUST-SAFETY]。五层骨架、两条轴、上提决策与工件均为 E4 作者提炼；`path-kind` 为合成案例。
+本章六项主证据为论文星形架构 [E1-ARCH]、workspace 与 utility 边界 [E2-WORKSPACE]、共享 feature/cfg [E2-UUCORE]、multicall 入口 [E2-MULTICALL]、错误—退出桥 [E2-ERROR-MODEL] 与 Rust 路径／unsafe 规则 [E2-RUST-SAFETY]。五层骨架、两条轴、上提决策与 Decision Record 均由 [E4-RUST-SKELETON] 明标为作者治理综合；`path-kind` 为合成案例。
 
 ### 版本演化说明
 

@@ -1,18 +1,18 @@
 # 第 8 章：测试层次
 
-> **定位**：本章把[第 3 章七字段契约](../part1/ch03-behavior-contract.md#从五元组展开为七字段契约)和[第 7 章静态门禁](ch07-static-gates.md#概念模型五层拒绝器与三种范围)映射为动态证据：纯函数单元测试、crate/component、utility 进程、workspace 集成与外部兼容套件。适用于选择测试落点、设计 fixture／平台矩阵、分诊 flaky failure 和规定测试所有权。读完后，读者应能让同一行为在不同层互补验证，并把外部发现固化为本项目可维护的 Rust 回归。
+> **定位**：本章把[第 3 章七字段契约](../part1/ch03-behavior-contract.md#从五元组展开为七字段契约)和[第 7 章静态门禁](ch07-static-gates.md#概念模型五层拒绝器与三种范围)映射为六层动态证据：unit、component、utility 进程、workspace／平台、外部兼容套件与生产反馈。适用于选择测试落点、设计 fixture／平台矩阵、分诊 flaky failure 和规定测试所有权；读者最终应能把外部或生产反例固化为本地 Rust 回归。
 
 ## 具体失败现场：四百个单元测试没有启动过进程
 
-合成命令 `emit-record PATH` 读取路径并输出 NUL 分隔记录。团队把解析、转义和排序拆成纯函数，写了四百个表驱动测试；覆盖率很高，静态门禁也全绿。部署前的第一个进程测试却失败：入口把 stderr 重定向到 stdout，usage error 返回 0，而且工作目录继承了开发机，读取到 fixture 之外的同名文件。
+合成命令 `emit-record PATH` 输出 NUL 分隔记录。四百个纯函数测试和静态门禁全绿，第一个进程测试却发现 stderr 被并入 stdout、usage error 返回 0，工作目录还继承了开发机。
 
-团队补进程测试后又遇到平台问题。Linux 用例通过，macOS 对文件名顺序不同；测试为消除 flaky 直接 `sort()`，结果把“重复记录被丢弃”的 bug 一并隐藏。外部兼容套件随后找到非 UTF-8 路径差异，维护者加了永久 skip，没有把最小反例写进 Rust 测试。几个月后套件版本升级，skip 消失，缺陷重新出现。
+Linux 通过后，macOS 顺序波动促使测试直接 `sort()`，连重复记录丢失也被隐藏。外部套件又找到非 UTF-8 差异，维护者只加永久 skip；套件升级后缺陷重现。
 
 测试数量和行覆盖率不能回答“观察了哪一层”。测试层次的职责是：**用最便宜的层定位原因，用足够外部的层证明契约，再把新反例固化到可维护层。**
 
-## 概念模型：五层动态证据与四个评价维度
+## 概念模型：六层动态证据与四个评价维度
 
-论文在其测量窗口把项目测试描述为单元、项目集成和外部端到端三层。[E1-TEST-STACK] 本章按固定仓库可见边界扩成五层；这是 E4-VERIFICATION-LADDER 作者提炼，不是把论文历史数量改写为当前事实。[E4-VERIFICATION-LADDER]
+论文在其测量窗口把项目测试描述为单元、项目集成和外部端到端三层。[E1-TEST-STACK] 本章把固定仓库边界与运行反馈组织成六层；L6 及整体阶梯均为作者提炼 [E4-VERIFICATION-LADDER]，不是论文的层数或当前覆盖率。
 
 | 层 | 典型对象 | 反馈 | 观察范围 | 主要 oracle | 反例持久化 |
 |---|---|---|---|---|---|
@@ -21,8 +21,9 @@
 | L3 utility 进程 | argv/env/stdin、通道、exit、副作用 | 中 | 单命令真实进程 | Behavior Contract | `tests/by-util` |
 | L4 workspace／平台 | shared core、multicall、target 组合 | 较慢 | 多消费者与 runner | 回归矩阵、平台契约 | 项目 CI 与平台测试 |
 | L5 外部兼容套件 | 长期 CLI 兼容案例 | 慢、分诊成本高 | 外部用户视角 | 外部套件／参考观察 | 先分诊，再转本地 Rust 回归 |
+| L6 生产反馈 | shadow/canary 后的真实工作负载 | 延迟最高、隔离最低 | 最广但不可控 | SLO、告警、日志、事件与回退阈值 | 事件最小化后转本地回归 |
 
-选择层时同时衡量四维：速度、隔离性、行为覆盖面、诊断成本。不存在单向“越高越好”的金字塔：L5 发现差异很强，失败定位可能很弱；L1 定位精确，观察面窄。对每个契约字段，选择**最小能看见它的层**，再用更外层验证接缝。
+四个评价维度是速度、隔离性、覆盖面和诊断成本。L1 定位强而范围窄；L6 触达真实负载却最慢、最难隔离。每个契约字段先放在**最小可见层**，再用外层验证接缝。L6 是发布后的运行门，不是合并门；没有生产信号不能抵扣 L1–L5 缺口。
 
 ```mermaid
 flowchart TB
@@ -32,6 +33,8 @@ flowchart TB
     P --> W["L4 workspace + platform"]
     W --> X["L5 external compatibility"]
     X -->|"新差异"| T["固定环境与最小化"]
+    X -. "经第13—14章发布门" .-> D["L6 production feedback<br/>非合并门"]
+    D -->|"事件/阈值越界"| T
     T --> R["本地 Rust 回归"]
     R --> F["修复 + 影响回归"]
     F --> X
@@ -47,19 +50,17 @@ flowchart TB
 
 ### `CmdResult` 保留进程契约的原始观察
 
-[`tests/uutests/src/lib/util.rs:119–159`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/tests/uutests/src/lib/util.rs#L119-L159)的 `CmdResult` 保存二进制路径、utility 名、临时目录、可选退出状态，以及 `Vec<u8>` 形式的 stdout/stderr。[E2-TEST-COMMANDS] 这是重要能力边界：原始字节可以支持非 UTF-8 和 NUL 数据，但调用者若选择 `stdout_str()`、`trim()` 或宽松 contains，仍可能主动丢信息。结构有字段不等于每个测试都断言字段。
+[`tests/uutests/src/lib/util.rs:119–159`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/tests/uutests/src/lib/util.rs#L119-L159)的 `CmdResult` 保存退出状态及 `Vec<u8>` stdout/stderr。[E2-TEST-COMMANDS] 它支持非 UTF-8/NUL 观察；测试若改用文本、`trim()` 或宽松 contains，仍会主动丢信息。
 
 ### `TestScenario` 提供每例隔离目录和 fixture
 
-[`util.rs:1366–1409`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/tests/uutests/src/lib/util.rs#L1366-L1409)说明 `TestScenario` 定位测试二进制、为每例创建唯一临时目录并复制 `tests/fixtures/<util>` 内容；后续还可在部分平台挂临时文件系统。[E2-TEST-COMMANDS] 隔离目录减少并行相互污染，却不会自动控制 locale、时区、用户、umask、时钟或文件系统能力；测试必须显式配置契约相关项。
-
-fixture 是输入代码，不是静态图片。它需要来源、平台适用性、预期状态和清理策略。二进制 fixture 应按字节创建或校验 digest，不能经文本编辑器无意改行尾；权限 fixture 在 Git 中未必保留 mode，应在 setup 阶段显式设置。
+[`util.rs:1366–1409`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/tests/uutests/src/lib/util.rs#L1366-L1409)为每例创建唯一临时目录并复制 fixture。[E2-TEST-COMMANDS] 这减少并行污染，但 locale、时区、身份、umask、时钟与 FS 能力仍须显式配置；fixture 还需来源、digest 和平台说明。
 
 ### `UCommand` 让环境、资源与终端进入夹具
 
 [`util.rs:1486–1524`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/tests/uutests/src/lib/util.rs#L1486-L1524)说明 `UCommand` 包装命令、记录参数、使用独立工作目录并默认清空环境，同时持有 stdin/stdout/stderr、字节 stdin、Unix resource limit、timeout、终端模拟和 umask 等状态。[E2-TEST-COMMANDS] `1657–1705` 提供 env、umask 与 timeout builder；`1928–2048` 构建命令时清环境、设默认 timeout、连接 PTY 并应用 umask。
 
-这些能力支持可重复 fixture，但也定义了测试环境与真实 shell 的差异。默认清空环境可能隐藏用户继承变量问题；PTY 模拟不等于所有终端；resource limit 与 `/dev/full` 只覆盖特定故障。每项选择都要回写 Behavior Contract 的 `E/P/U`。
+这些能力支持重放，也制造与真实 shell 的差异：清空环境、PTY、resource limit 与 `/dev/full` 都只覆盖声明条件，须回写契约 `E/P/U`。
 
 ### 真实用例展示环境与副作用观察
 
@@ -69,7 +70,7 @@ fixture 是输入代码，不是静态图片。它需要来源、平台适用性
 
 ### 外部套件是发现入口，不是唯一规范
 
-固定开发文档给出 BusyBox 与另一个外部兼容套件的执行入口、平台前提和选择方式。[E2-EXTERNAL-SUITES] 本章不读取或派生禁止实现源码及其测试内容，只把项目文档中的“存在外部执行路径”作为 E2 事实。外部结果需要按候选缺陷、项目非目标、suite 假设、环境问题、参考缺陷或非确定性分诊；不能一失败就模仿，也不能一失败就 skip。
+固定 [`DEVELOPMENT.md:197–239`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/DEVELOPMENT.md#L197-L239)记录外部套件入口、平台前提和选择方式。[E2-EXTERNAL-SUITES] 它只证明项目文档存在执行入口，不证明 Agent 获得上下文权限或套件内容是规范；失败仍须分诊，不能直接模仿或 skip。
 
 固定 [`AGENTS.md:17–23`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/AGENTS.md#L17-L23)要求新行为或 bug 修复有本地 Rust 测试；外部测试从失败变为通过，也要新增 Rust 回归以防静默复发。[E2-NO-TEST-NO-MERGE] 这给出明确所有权迁移：外部套件发现，项目内最小回归永久保存。
 
@@ -90,10 +91,9 @@ fixture 是输入代码，不是静态图片。它需要来源、平台适用性
 | L3 | 创建字节路径并启动命令，断言 stdout bytes/stderr/exit | 入口、原生路径、通道和退出 | 其他 target、外部长期组合 |
 | L4 | standalone/multicall 与 Unix/Windows 能力矩阵 | 调度与目标分支 | 未运行平台、所有 filesystem |
 | L5 | 允许的外部兼容案例 | 项目未编码的历史组合 | oracle 正确、差异应保留、项目回归持久性 |
+| L6 | shadow/canary 指标、日志、事件与回退 | 真实组合、打包和长期负载差异 | 低频未来事件、根因隔离与测试前置证明 |
 
-五层都触及“同一行为”，却不是机械复制相同断言。L1 用大量输入定位编码函数；L3 只保留高价值代表，验证真实边界；L4 配置入口与平台；L5搜索未知。若 L1 与 L3 共用同一个错误的 expected generator，层数不会增加独立证据；对关键期望应使用常量、独立模型或人工批准样本，并给比较器负控。
-
-重复的判据不是“测试名相似”，而是“观察面、fixture 和 oracle 是否提供新信息”。两个层都只调用同一内部函数且同一 expected helper，属于相关重复；一个测试算法性质、另一个启动进程观察 exit，属于互补。
+六层不是复制断言：L1 定位编码，L3 验证进程，L4 覆盖入口／平台，L5 搜索历史兼容面，L6 观察真实运行。共享同一个错误 expected helper 不增加独立证据；判断重复要看观察面、fixture 与 oracle 是否新增信息。
 
 ## 环境、权限与平台矩阵
 
@@ -115,19 +115,21 @@ fixture 是输入代码，不是静态图片。它需要来源、平台适用性
 
 **契约。** `BC-EMIT-041@v3` 规定输入一个目录；stdout 是 NUL 分隔原生路径多重集合，顺序可变但重复显著；stderr 为空、exit 0；缺目录 exit 1；Unix 字节路径与 Windows 原生路径分别建平台 outcome。性能、并发目录变化和网络文件系统为 non-goal/unknown。
 
-**L1 先定位表示。** `encode_record` 用 `[ascii, 0xFF, newline, duplicate]` 表驱动，性质是每个输入产生恰好一个尾随 NUL 记录、原字节可逆。负控改为 `to_string_lossy()` 或普通集合去重，测试必须失败。L1 快速拒绝有损算法，却不证明实际目录枚举把原生路径传进函数。
+**L1 表示。** `[ascii, 0xFF, newline, duplicate]` 验证一输入一条 NUL 记录和字节可逆；lossy／集合去重负控必须失败，但它不证明进程传入原生路径。
 
-**L2 验证组件接缝。** parser 输出 `PathBuf`，collector 输出 `Vec<OsString>`，encoder 接收借用原生类型。component 测试故意让显示层返回错误，确认结构化错误没有变 exit；真实 exit 留给 L3。
+**L2 组件。** parser 保留 `PathBuf`，collector 保留 `OsString`；显示错误保持结构化，真实 exit 留给 L3。
 
-**L3 启动真实进程。** `TestScenario` 创建独立目录，Unix fixture 含 `a`、字节 `FF`、换行与两个不同但 lossy 显示相同的名称。`CmdResult` 按 bytes 解析 NUL 多重集合，分别断言 stdout、stderr、exit 和目录不变。负控把 stderr 合并 stdout、exit 固定 0、删除重复记录，三者都应失败。
+**L3 进程。** Unix fixture 含字节 `FF`、换行和 lossy 显示碰撞名；`CmdResult` 按 bytes 断言 NUL 多重集合、stderr、exit 与目录不变。交换通道、exit 固定 0、删除重复的负控都应失败。
 
-**L4 入口与平台。** 同一核心样本通过 standalone 和 multicall；Linux runner执行字节路径，Windows runner执行原生宽路径，不能把 Unix fixture复制到 Windows。macOS 只有 runner 但缺一项 fixture capability，条目写 `blocked_by_fixture` 而非 pass；owner 负责补齐或在发布范围排除。
+**L4 入口／平台。** standalone、multicall 与 Linux 字节路径分别执行；Windows 使用自己的原生路径 outcome。macOS 缺 fixture 能力时记 `blocked_by_fixture`，不算 pass。
 
-**L5 发现新差异。** 允许的外部套件报告“尾随换行名称被拆成两条”。分诊先固定套件版本、平台、env 与原始输出，确认候选缺陷；再最小化为一个含换行路径。团队没有长期依赖外部用例，而把最小样本加入 L3 Rust 回归，证明错误候选失败，再修 encoder。外部套件重跑只作为“原发现已关闭”的额外收据。
+**L5 外部发现。** 外部套件暴露换行名称被拆分；固定版本／环境后最小化，将样本加入 L3 Rust 回归再修复。套件重跑只是关闭原发现的附加收据。
 
-**影响回归。** 修复共享 encoder 后，affected 选择器运行两个消费者的进程测试；workspace 周期矩阵检查多入口。Change Package 分栏记录 L1–L5 的真实命令、pass/fail/skip/unknown、fixture digest 和未覆盖并发／网络 FS。
+**L6 生产反馈。** 经[第 13 章完成门](../part4/ch13-definition-of-done.md)与[第 14 章分阶段发布](../part5/ch14-rollout-rollback.md)后，canary 的解析失败率越过阈值并触发回退。运行收据保存版本、流量段、指标窗口、日志与回退；事件被最小化为本地 fixture，先让 L3 失败，再修复并重跑 L1–L5。L6 的低隔离、晚反馈和 operational oracle 不能批准 merge，只能反馈新契约／回归与发布决策；生产事实边界详见[第 15 章](../part5/ch15-ubuntu-boundaries.md)。
 
-完整链条不是为了让同一输入跑五遍，而是完成“快速定位→真实边界→平台范围→未知搜索→本地资产化”。若未来外部套件删除该案例，本地回归仍由项目拥有。
+**影响回归。** 共享修复运行消费者与 workspace 矩阵；Change Package 分栏记录 L1–L5 命令与 L6 运行收据，保留未覆盖并发／网络 FS。
+
+链条完成“定位→进程→平台→外部搜索→运行反馈→本地资产化”；外部用例或事件消失后，回归仍由项目拥有。
 
 ## flaky test 分诊与所有权
 
@@ -141,7 +143,7 @@ flaky 不是“多跑几次直到绿”。第一次波动就生成 Flake Record�
 
 只有证据支持基础设施偶发时才允许受限 retry；第一次失败仍保留。quarantine 要有 owner、issue、到期与发布影响，且结果是 `quarantined/unknown`，不是 pass。高风险契约测试被隔离通常阻断发布。
 
-所有权按层分配：函数 owner 维护 L1；utility owner 维护 L2/L3；shared/platform owner 维护 L4；compatibility owner 分诊 L5并确保转本地回归；fixture owner 维护测试数据和归一化。发现者可以是外部套件或 Agent，关闭者必须是能解释契约与证据的人。
+所有权按层分配：函数 owner 管 L1，utility owner 管 L2/L3，shared/platform owner 管 L4，compatibility owner 分诊 L5，release/ops owner 管 L6 指标、事件与回退；fixture owner 维护数据。关闭者必须能解释契约与证据。
 
 ## 反例
 
@@ -187,6 +189,12 @@ layers:
     role: discovery_not_absolute_spec
     failure_dispositions: [candidate_bug, non_goal, suite_assumption, environment, reference_bug, flaky]
     local_regression_required_on_candidate_fix: true
+  L6_production_feedback:
+    role: runtime_non_merge_gate
+    entry_condition: staged_release_only
+    oracle: [slo, alert, log, incident, rollback_threshold]
+    receipt: [version, traffic_segment, window, metrics, rollback]
+    incident_to_local_regression: required
 environment:
   cwd: unique_tempdir
   env_clear: true
@@ -203,7 +211,7 @@ proof_boundary:
   unknown: [concurrent_mutation, network_fs, unlisted_platforms]
 ```
 
-Map 先计划，receipt 后填结果。每个字段至少被一层观察；归一化必须列负控；`blocked_by_fixture` 保持可见；L5 修复绑定本地回归。
+Map 先计划，receipt 后填结果；归一化列负控，阻塞保持可见，L5/L6 反例都绑定本地回归。L6 不参与 merge verdict。
 
 ## 模式提炼
 
@@ -217,6 +225,8 @@ Map 先计划，receipt 后填结果。每个字段至少被一层观察；归�
 
 **flaky 是未决证据**：保留首次失败、分类来源、限时 quarantine。重跑绿只能说明后续运行通过，不能抹去原失败。
 
+**生产反馈回流**：L6 用 operational oracle 暴露真实组合，但只生成事件、回退与本地回归输入，不倒写为“上线即测试”。其前置是 L1–L5 与发布门已满足，失效边界是用生产流量替代合并证据。
+
 ## AI Coding 工作台
 
 工作台按 contract field 展示测试层，而不是只显示一串命令。Agent 可以生成 L1 表格、L3 fixture 草稿和收据摘要；它必须先运行负控，不能通过扩大 normalization、删除失败样本、无限 retry 或添加无期限 skip 取得绿灯。外部失败先输出分诊包，不立即模仿参考。
@@ -227,6 +237,7 @@ Map 先计划，receipt 后填结果。每个字段至少被一层观察；归�
 按 TLM-EMIT-041 为 BC-EMIT-041@v3 实现测试，不改产品代码和外部 suite。
 L1 覆盖 byte roundtrip/duplicates；L3 启动真实进程并观察 stdout/stderr/exit/tree；
 L4 保持 runner 缺失为 unknown；L5 失败先最小化与分类。
+L6 只接收已发布版本的运行收据；事件必须回流本地回归，不能改变 merge 结果。
 禁止 lossy/trim/set normalization，除非 contract 明确且有负控。
 flaky 保留首次失败；超过两次非同型结果就停止并生成 Flake Record。
 交付真实命令、fixture digest、结果、未运行项和 proof boundary。
@@ -244,6 +255,7 @@ flaky 保留首次失败；超过两次非同型结果就停止并生成 Flake R
 | 固定 date/cp 用例展示 locale/TZ、元数据、写失败和目标状态可进入进程测试。[E2-TEST-COMMANDS] | 所有 locale、权限、文件系统、故障时点和平台已验证。 |
 | 外部套件通过证明其版本、环境与实际执行条目未报告未豁免失败。[E2-EXTERNAL-SUITES] | 参考绝对正确、skip 合理、未执行条目通过或项目无需本地回归。 |
 | 本地回归与负控通过支持声明案例的可见性和候选结果。[E2-NO-TEST-NO-MERGE] | 未枚举输入、生产时序、网络 FS、长期资源行为或数学完备性。 |
+| L6 收据可证明指定版本、流量段与窗口出现了指标、日志、事件或回退结果。[E4-VERIFICATION-LADDER] | merge 应通过、根因已定位、未出现的长尾安全，或生产能替代 L1–L5。 |
 
 ## 局限
 
@@ -251,7 +263,7 @@ flaky 保留首次失败；超过两次非同型结果就停止并生成 Flake R
 
 平台矩阵受 runner 与能力限制。容器、PTY、临时 FS 和 root runner 不等于用户生产环境；无法复制的条件要进入 unknown 和上线边界。外部套件有许可、平台、版本和运行成本，本章不把它当唯一事实源。
 
-分层会产生 fixture 漂移、慢测、flaky 和 owner 失联。应度量失败定位、quarantine 年龄与反例资产化率，而不是只追求测试数。第 9–10 章继续处理差分与 fuzz，本章不声称五层覆盖状态空间。
+分层会产生 fixture 漂移、慢测、flaky 和 owner 失联；L6 还受隐私、观测盲区和事故成本限制。第 9–10 章处理差分/fuzz，第 14–15 章处理发布与生产事实；六层不覆盖状态空间。
 
 ## 实践清单
 
@@ -260,7 +272,7 @@ flaky 保留首次失败；超过两次非同型结果就停止并生成 Flake R
 - [ ] fixture 是否记录来源、digest、cwd、env、locale、TZ、umask、身份、FS 和 timeout？
 - [ ] 平台缺 runner/fixture 是否保持 unknown，没有把 skip 当 pass？
 - [ ] 外部差异是否先分诊、最小化，再固化为本地 Rust 回归？
-- [ ] flaky 是否保留首次失败、owner、到期和发布影响，归一化是否有负控？
+- [ ] flaky 是否保留首次失败与 owner；L6 是否明确非合并门，并把事件转成回归？
 
 ## 练习
 
@@ -270,7 +282,7 @@ flaky 保留首次失败；超过两次非同型结果就停止并生成 Flake R
 
 ## 本章证据
 
-本章四项主证据为论文测试栈 [E1-TEST-STACK]、固定执行命令与测试夹具 [E2-TEST-COMMANDS]、项目文档所列外部套件入口 [E2-EXTERNAL-SUITES]、外部修复必须落本地 Rust 回归的规则 [E2-NO-TEST-NO-MERGE]。五层模型、Test Layer Map、flaky 流程和所有权属于作者提炼 [E4-VERIFICATION-LADDER]；`emit-record` 是合成案例。
+本章四项主证据为论文测试栈 [E1-TEST-STACK]、固定命令／夹具 [E2-TEST-COMMANDS]、文档化外部入口 [E2-EXTERNAL-SUITES]、外部修复须落本地回归的规则 [E2-NO-TEST-NO-MERGE]。六层模型、L6 非合并门、Test Layer Map 与 flaky 流程均属作者提炼 [E4-VERIFICATION-LADDER]；`emit-record` 是合成案例。
 
 ### 版本演化说明
 

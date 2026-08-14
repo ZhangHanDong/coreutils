@@ -59,7 +59,7 @@ flowchart LR
 
 [`CONTRIBUTING.md:218–229`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L218-L229)进一步要求 AI 辅助贡献者理解、解释、证明每一行，警惕输出派生风险，并保持补丁小而聚焦。[E2-AI-POLICY] 这是项目当前规则，不是 arXiv 论文对 Agent 的实验结论。它给 manifest 增加了 `human_owner`、`explain_back`、`diff_scope` 和 `review_receipt` 字段；第 6 章会把“小而聚焦”编译为[原子任务](ch06-agent-atomicity.md#概念模型行为意图而不是文件数量)。
 
-贡献指南还允许从用户文档和受控比较发现行为，开发文档列出项目测试与外部套件入口；这些入口提供的是可观察行为，不是对参考环境文件系统的浏览许可。[E2-EXTERNAL-SUITES] 论文 P1 把成功调用的退出状态、stdout 与文件系统结果纳入兼容目标，说明黑盒采集需要跨越文本输出和外部状态。[E1-P1] 但 P1 没有提出 Context Manifest，也没有证明任何特定观察就是规范；观察仍须经过第 3 章的契约裁决。
+固定提交的 [`CONTRIBUTING.md:128–133`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/CONTRIBUTING.md#L128-L133)允许从用户手册理解行为，[`DEVELOPMENT.md:197–239`](https://github.com/uutils/coreutils/blob/d8bee62c1ddc227d5e4385d80bbf6d7dee266a41/DEVELOPMENT.md#L197-L239)只记录外部套件的执行入口与前提。[E2-EXTERNAL-SUITES] 它们证明项目文档存在这些入口，不证明 Agent 获得了上下文访问权；访问仍由 manifest 决定。论文 P1 把成功调用的退出状态、stdout 与文件系统结果纳入兼容目标，说明黑盒采集需要跨越文本输出和外部状态。[E1-P1] 但 P1 没有提出 Context Manifest，也没有证明任何特定观察就是规范；观察仍须经过第 3 章的契约裁决。
 
 <!-- source: AGENTS.md -->
 <!-- source: CONTRIBUTING.md -->
