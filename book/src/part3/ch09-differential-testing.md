@@ -180,7 +180,7 @@ comparison:
   termination: {comparator: exact_code, verdict: pass}
   filesystem: {comparator: tree_v2, verdict: pass}
 machine_state: compared_equal
-human_classification: allowed_set_match
+human_classification: allowed_difference
 decision_owner: compatibility-owner
 decision_reason: contract fields equal after approved root mapping
 limitations: [windows_path, network_fs, concurrent_tree, power_loss]

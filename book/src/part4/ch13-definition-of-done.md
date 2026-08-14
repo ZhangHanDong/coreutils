@@ -234,7 +234,8 @@ human_decisions:
     scope: merge
     object_hash: sha256:change-package-r3
     reason: explain_back_complete
-package_transition: Candidate -> Verified -> ApprovedForMerge
+package_transition: Candidate -> Verified -> Approved
+approval_scope: merge
 residual_unknowns: []
 ```
 
@@ -269,7 +270,7 @@ DoD 使证据和缺口可见，不能消除未知。tier/Profile 不是形式化
 - [ ] 人工 Approve/Reject/Waive 不改写机器检查事实。
 - [ ] Direct 与 LimitedWithWaiver 分开，waiver 有范围、补偿、owner、期限和关闭证据。
 - [ ] Candidate Agent 不得修改当前 policy、自降 Profile 或自我批准。
-- [ ] 区分 ApprovedForMerge、Staged、Observed 与完整迁移，不复用跨阶段签字。
+- [ ] 区分 Approved（`approval_scope: merge`）、Staged、Observed，不复用签字。
 
 ## 练习
 

@@ -22,7 +22,7 @@ Change Package（变更包）把一个行为意图、一个可寻址实现、回
 - **Human View**：一页内回答为什么改、行为怎样变化、证据支持什么、还不知道什么、谁决定、如何回退；
 - **Machine View**：字段、枚举、引用和状态可解析，可验证必填项、哈希、门禁合取与权限，不替人判断风险是否值得接受。
 
-两种视图必须由同一数据生成；摘要“全绿”而机器数据有 `unverified`，或 YAML 写 `approved` 却无签名对象，都应阻断。
+两种视图必须同源；摘要“全绿”但机器数据有 `unverified`，或 `approved` 无签名对象，都应阻断。
 
 本章结构是 **E4-CHANGE-PACKAGE 作者提炼**，不是 uutils 现行格式；它引用前章规范，不重复定义。
 
@@ -143,6 +143,7 @@ package_id: CP-MANIFEST-017
 revision: 1
 object_hash: sha256:package-canonical-json
 phase: Approved
+approval_scope: merge
 verification_basis: Direct        # Direct | LimitedWithWaiver
 identity:
   title: preserve trailing-space path identity in success records
@@ -200,7 +201,7 @@ rollback:
   verification: [REG-MANIFEST-TRAILING-SPACE-001]
 ```
 
-`NETWORK-FS` 不属已批准 Linux 契约，故为有确认人的 `N/A`，可在 residual unknown 保留调查。若合同包含它，则应为 Unverified、`eligible_for_verified=false`；限时 waiver 可形成 `LimitedWithWaiver`，原 status 不变。
+`NETWORK-FS` 不属批准的 Linux 契约，故为有确认人的 `N/A`，可在 residual unknown 保留调查。若合同包含它，则应为 Unverified、`eligible_for_verified=false`；限时 waiver 可形成 `LimitedWithWaiver`，原 status 不变。
 
 ## AI Coding 工作台
 

@@ -17,6 +17,7 @@
 <!-- source: fuzz/fuzz_targets/fuzz_echo.rs -->
 <!-- source: fuzz/fuzz_targets/fuzz_date.rs -->
 <!-- source: fuzz/fuzz_targets/fuzz_sort.rs -->
+<!-- source: fuzz/fuzz_targets/fuzz_non_utf8_paths.rs -->
 <!-- source: CONTRIBUTING.md -->
 <!-- source: AGENTS.md -->
 
