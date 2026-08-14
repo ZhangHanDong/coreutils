@@ -39,8 +39,11 @@ jobs:
       - name: Verify book quality
         run: bash book/tests/test_book_quality.sh
 
-      - name: Build book
+      - name: Verify mdBook render
         run: bash book/tests/test_mdbook_build.sh
+
+      - name: Build GitHub Pages artifact
+        run: mdbook build book
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
