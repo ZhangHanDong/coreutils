@@ -24,11 +24,11 @@ DoD 不是一个静态 checklist，而是函数：
 DoD(change, scope, stage, policy) = \bigwedge ApplicableGates
 \]
 
-输入包括变更事实、声明范围、当前阶段和固定 policy 版本；输出不是“代码永远正确”，而是“证据足以把这个对象推进到下一个状态”。同一补丁可以“候选实现完成”但“发布未完成”；可以“Linux 局部行为 Verified”但“Windows Unverified”；可以“已合并”但“尚未完成默认迁移观察窗口”。
+输入是变更事实、范围、阶段和固定 policy 版本；输出不是“代码永远正确”，而是“证据足以让对象进入下一状态”。同一补丁可以实现完成但发布未完成；Linux Verified 而 Windows Unverified；已合并却未完成默认迁移观察窗。
 
-所有门禁必须使用第 12 章同一四值状态：`Pass`、`Fail`、`Unverified`、`N/A`。`Pass` 有可重放证据；`Fail` 有证据显示不满足；`Unverified` 是未运行、基础设施失败、结果不足或差异未裁决；`N/A` 是根据可观察触发规则确实不适用，并有理由与确认。空值不合法。
+唯一 machine schema ID 是 `chapter-13/profile-schema-v1`，固定 `Pass | Fail | Unverified | N/A`：`Pass` 可重放；`Fail` 证实不满足；`Unverified` 表示未运行、设施失败、证据不足或差异未裁决；`N/A` 由适用性规则判定，须带理由、证据或具名确认，且不是 `Pass`。空值非法。
 
-人工决定沿用 `Approve`、`Reject`、`Waive`，但不修改检查状态。waiver 只能创建一条有限替代路径：保留原 `Unverified/Fail`，记录范围、风险、补偿控制、owner、approver、到期和关闭证据，将 `verification_basis` 标为 `LimitedWithWaiver`。直接证据齐备时为 `Direct`。
+人工决定仍为 `Approve`、`Reject`、`Waive`，不改检查状态。waiver 只创建有限替代路径：保留原 `Unverified/Fail`，记录范围、风险、补偿控制、owner、approver、到期和关闭证据，将 `verification_basis` 标为 `LimitedWithWaiver`；直接证据齐备时为 `Direct`。
 
 完成合取可分为八类：
 
@@ -36,7 +36,7 @@ DoD(change, scope, stage, policy) = \bigwedge ApplicableGates
 Done = Scope \land Provenance \land Build \land Static \land Behavior \land Differential \land Ownership \land Recovery
 \]
 
-更多单元测试不能抵消来源越界；人类签字不能抵消没跑的平台；Rust 类型安全不能抵消错误退出码；差分相等不能抵消回退不可执行。不同证据维度只能互补，不能用总分相互抵扣。这一 **E4-VERIFICATION-LADDER** 是作者提炼，不是仓库或论文原有公式。
+单元测试不能抵消来源越界；签字不能抵消没跑的平台；类型安全不能抵消错误退出码；差分相等不能抵消不可回退。证据维度只能互补，不能用总分抵扣。这一 **E4-VERIFICATION-LADDER** 是作者提炼，不是仓库或论文原有公式。
 
 ## 先定风险，再选择五个可组合 Profile
 
@@ -52,23 +52,23 @@ Done = Scope \land Provenance \land Build \land Static \land Behavior \land Diff
 | 权限/安全 | 普通非特权路径 | 敏感输入或边界校验 | `unsafe`、FFI、提权、秘密、漏洞路径 |
 | 回退成本 | Git revert 即恢复 | 需包/配置切换与清理 | 数据修复、系统关键 provider、长恢复窗 |
 
-团队可把每维记 `0/1/2`，但分数不是最终真理：任一 High 触发 High tier；两个以上 Medium 至少进入 Medium；事故、未知平台或监管要求可以人工上调，不能无证据下调。机器可根据 diff 路径、标签和契约初步计算，风险负责人确认并记录差异。
+每维可记 `0/1/2`，但任一 High 触发 High tier，两个 Medium 至少为 Medium。事故、未知平台或监管要求可上调，无证据不得下调。机器按 diff 路径、标签和契约初算，风险负责人确认差异。
 
 ### 五个规范 Profile
 
-以下名称与语义是第 12 章、附录 B/E 和后续 pipeline 的稳定接口；大小写与空格保持一致：
+schema 固定人读名称与 machine enum；附录/pipeline 仅传 enum：
 
-| Profile | 可观察触发条件 | 追加门禁核心 |
-|---|---|---|
-| **Mechanical** | 仅移动、命名、格式或等价生成物，声明零契约变化 | 机械 diff 审核；移动前后 build/test 选择一致；不得混入行为改动 |
-| **Local Behavior** | 一个 utility/组件的一个行为契约变化 | 最小复现；pre-fix red/post-fix green；进程观察；相关差分/性质；原子回退 |
-| **Shared Core** | 公共 crate、错误/I/O/路径/平台层、multicall 或多消费者接口 | 影响矩阵；代表消费者；多 feature/target；架构审稿；宽回归 |
-| **Safety Critical** | `unsafe`、FFI、权限、删除、链接、原子替换、安全/隐私路径 | 专项安全审稿；前提/攻击面；故障/竞态/负控；恢复或数据修复演练 |
-| **Release Default** | 默认 provider/二进制/路径改变，或广泛真实流量 | 真实产物；shadow/canary；指标阈值；值班；观察窗口；实际回退演练 |
+| 人读名称 | machine enum | 可观察触发 | 追加门禁核心 |
+|---|---|---|---|
+| **Mechanical** | `mechanical` | 仅移动、命名、格式或等价生成物，零契约变化 | 机械 diff；前后 build/test 选择一致；不得混入行为改动 |
+| **Local Behavior** | `local_behavior` | 单 utility/组件的行为契约变化 | 最小复现；red/green；进程观察；差分/性质；原子回退 |
+| **Shared Core** | `shared_core` | 公共 crate、错误/I/O/路径/平台层或多消费者接口 | 影响矩阵；代表消费者；多 feature/target；架构审稿；宽回归 |
+| **Safety Critical** | `safety_critical` | `unsafe`、FFI、权限、删除、链接、原子替换、安全/隐私路径 | 安全审稿；前提/攻击面；故障/竞态/负控；恢复演练 |
+| **Release Default** | `release_default` | 默认 provider/二进制/路径改变或广泛真实流量 | 真实产物；shadow/canary；阈值；值班；观察窗；实际回退 |
 
-`selected_profiles` 是数组，命中多个取并集。例如共享错误层 FFI 选择 `[Shared Core, Safety Critical]`；局部行为随默认 provider 发布选择 `[Local Behavior, Release Default]`。Profile 不互斥。
+`selected_profiles` 只接受 machine enum 数组，命中多个取并集。例如共享错误层 FFI 选择 `[shared_core, safety_critical]`；局部行为随默认 provider 发布选择 `[local_behavior, release_default]`。Profile 不互斥。
 
-机器按可观察事实强制 Profile；人类可增加，删除触发项需独立 policy override，候选 Agent 无权自降。
+机器按事实强制 Profile；人类可增加，删除触发项需独立 policy override，候选 Agent 无权自降。
 
 ```mermaid
 flowchart TB
@@ -111,9 +111,9 @@ High 包含 Medium，并按 Safety Critical/Release Default 加专项审稿、�
 
 ## 机器判定与人工决定：同一 schema、不同权限
 
-第 12 章 Change Package 已规定四值检查、三种人工决定和 package phase。本章的 policy engine 只做三件事：根据变更事实算适用 Profile/tier；展开 requirement 并验证 receipt/引用；计算 `eligible_for_verified` 和 `verification_basis`。它不能判断产品是否接受 stderr 差异，不能签署安全风险，也不能把候选 Agent 的解释当 approval。
+第 12 章 Change Package 已规定四值检查、三种人工决定和 package phase。本章 schema 只让 policy engine 算 Profile/tier、展开 requirement 并验证 receipt/引用、计算 `eligible_for_verified` 与 `verification_basis`。机器不能接受 stderr 差异、签署安全风险或把 Agent 解释当 approval。
 
-机器求值记录 policy、触发事实、requirement/status/receipt、N/A/waiver 与 hash，规则升级不重写历史。人工决定记录 role、identity、`Approve/Reject/Waive`、对象 hash、范围、理由和时间，只推进当前阶段；异议保持 `Open/Resolved/AcceptedRisk`，不能用多数签字覆盖专业阻断。
+机器求值记录 policy、触发事实、requirement/status/receipt、N/A/waiver 与 hash，规则升级不改历史。人工决定记录 role、identity、决定、对象 hash、范围、理由和时间，只推进当前阶段；异议保持 `Open/Resolved/AcceptedRisk`，多数签字不能覆盖专业阻断。
 
 `Verified` 有两种 basis：
 
@@ -130,11 +130,11 @@ waiver 至少含：requirement、当前状态、为什么现在无法满足、�
 
 到期只有三种结果：补证转 Pass；发现问题维持/转 Fail 并停止；重新评估后创建新的 waiver revision。自动延长、空到期或“直到有时间”为无效。系统应统计同一 requirement 的 waiver 频率；若反复出现，说明验证能力或 Profile 设计有结构缺陷，需要治理任务。
 
-N/A 也会腐化。每项 N/A 必须有触发规则、理由和确认角色；一旦变更事实改变，机器重新计算。例如局部 utility 的 Windows 测试可因契约只支持 Linux而 N/A，但共享路径代码使它重新适用，旧 N/A 不能沿用。
+N/A 也会腐化。每项 N/A 必须有适用性规则、理由、证据或确认角色；事实改变即重新计算。例如局部 utility 的 Windows 测试可因契约只支持 Linux 而 N/A，但共享路径代码会使它重新适用。
 
 ## 完整工程案例
 
-案例：`CP-ERROR-004` 修改共享错误转换，让两个 utility 的缺能力分支返回 `2`。diff 只有几十行，但触及公共 crate、多个消费者和平台条件。风险评分：行为表面 Medium、数据 Low、平台 High、权限 Low、回退 Low，因此总 tier 为 High；选择 `[Local Behavior, Shared Core]`，未触发 Safety Critical/Release Default。
+案例：`CP-ERROR-004` 修改共享错误转换，让两个 utility 的缺能力分支返回 `2`。diff 只有几十行，但触及公共 crate、多个消费者和平台条件。风险评分：行为表面 Medium、数据 Low、平台 High、权限 Low、回退 Low，因此总 tier 为 High；选择 `[local_behavior, shared_core]`，未触发 `safety_critical/release_default`。
 
 **Profile 展开。** Local Behavior 要求两个最小反例、red/green、进程输出/退出/副作用和相关差分；Shared Core 要求消费者影响矩阵、代表 utility、全 feature build、Unix/Windows runner和独立架构审稿。静态规则从固定仓库入口选择实际命令，不声称编译证明行为。[E2-STATIC-GATES]
 
@@ -154,9 +154,9 @@ N/A 也会腐化。每项 N/A 必须有触发规则、理由和确认角色；�
 
 **单项绿灯反例。** 编译通过不能证明退出码，差分相等不能证明文件系统未采集字段，人类签字不能证明 runner 执行，canary 低错误率不能抵消一次数据损坏。合取禁止跨维抵扣。
 
-**最重 Profile 取代并集。** `[Shared Core, Safety Critical]` 只选“看起来更重”的 Safety Critical，会漏消费者矩阵；只选 Shared Core 又漏 unsafe 前提。五个 Profile 规范是正交追加模块，永远取并集。
+**最重 Profile 取代并集。** `[shared_core, safety_critical]` 只选“看起来更重”的 `safety_critical`，会漏消费者矩阵；只选 `shared_core` 又漏 unsafe 前提。五个 Profile 是正交追加模块，永远取并集。
 
-**Agent 自降级。** 候选修改共享路径却在包中声明 `Local Behavior`。机器应从 touched paths/contract facts 强制 Shared Core；若规则误报，使用独立 policy override，而不是让候选编辑当前要求。
+**Agent 自降级。** 候选修改共享路径却声明 `local_behavior`。机器应从 touched paths/contract facts 强制 `shared_core`；若规则误报，使用独立 policy override，而不是让候选编辑当前要求。
 
 **永久 waiver。** “缺 runner，持续监控”没有范围、期限或回退，不是例外治理。它把验证缺口变成组织遗忘。有效 waiver 必须收窄阶段并自动过期。
 
@@ -172,10 +172,10 @@ N/A 也会腐化。每项 N/A 必须有触发规则、理由和确认角色；�
 
 ## 可复用工件
 
-下面 **DoD Decision Record** 与第 12 章 schema 使用同一状态、人工决定、Profile 名称和 basis。它是 E4 模板，不是 uutils 现行文件。
+下面 **DoD Decision Record** 以唯一 schema 衔接第 12 章的状态、人工决定、phase 与 `approval_scope`。它是 E4 模板，不是 uutils 现行文件。
 
 ```yaml
-schema: dod-decision/v1
+schema: chapter-13/profile-schema-v1
 decision_id: DOD-ERROR-004-R3
 change_package: CP-ERROR-004@r3
 object_hash: sha256:change-package-r3
@@ -189,10 +189,10 @@ risk:
     privilege_security: Low
     rollback_cost: Low
   confirmed_by: risk-owner
-selected_profiles: [Local Behavior, Shared Core]
+selected_profiles: [local_behavior, shared_core]
 profile_triggers:
-  Local Behavior: behavior_contract_changed_for_two_utilities
-  Shared Core: shared_error_conversion_touched
+  local_behavior: behavior_contract_changed_for_two_utilities
+  shared_core: shared_error_conversion_touched
 requirements:
   - id: LOCAL-RED-GREEN
     status: Pass
@@ -205,7 +205,7 @@ requirements:
     evidence: [RUN-WINDOWS-ERROR-004]
   - id: RELEASE-SHADOW
     status: N/A
-    reason: Release Default_not_selected
+    reason: release_default_not_selected
     confirmed_by: release-owner
 waivers:
   - id: WV-WINDOWS-004
@@ -243,7 +243,7 @@ residual_unknowns: []
 
 ## AI Coding 工作台
 
-Agent 可建议风险/Profile、运行门禁、采集 receipt 和列缺口；不能下调强制项、把空值当 N/A、批准 waiver、修改当前 policy 或写人类签名。工作台并列显示 requirement status、机器 `eligible/basis` 与人工 decision/objection，摘要始终保留 Unverified/Fail。提示只负责聚焦：“按固定 policy 评估；无法执行标 Unverified；只起草 waiver；需改门禁则停止。”字段权限仍由系统强制。
+Agent 可建议 Profile、运行门禁、采集 receipt 和列缺口；不能下调强制项、把空值当 N/A、批准 waiver、改当前 policy 或写人类签名。工作台并列显示 requirement status、机器 `eligible/basis` 与人工 decision/objection，摘要保留 Unverified/Fail。提示只聚焦：“按固定 policy 评估；无法执行标 Unverified；只起草 waiver；需改门禁则停止。”字段权限由系统强制。
 
 ## 能证明什么／不能证明什么
 
@@ -265,7 +265,7 @@ DoD 使证据和缺口可见，不能消除未知。tier/Profile 不是形式化
 
 - [ ] 每个 Done 声明写清对象、范围、阶段和 policy 版本。
 - [ ] 风险按行为、数据、平台、权限和回退五维判定；任一 High 不被平均。
-- [ ] 只使用五个规范 Profile 名称，命中多个取 requirement 并集。
+- [ ] `selected_profiles` 只用五个 machine enum，命中多个取 requirement 并集。
 - [ ] 状态固定为 Pass、Fail、Unverified、N/A，空值非法。
 - [ ] 人工 Approve/Reject/Waive 不改写机器检查事实。
 - [ ] Direct 与 LimitedWithWaiver 分开，waiver 有范围、补偿、owner、期限和关闭证据。
@@ -274,7 +274,7 @@ DoD 使证据和缺口可见，不能消除未知。tier/Profile 不是形式化
 
 ## 练习
 
-- **练习一：设计验证。** 给一个修改共享路径解析且含一处 `unsafe` 的 20 行补丁做五维风险评估，选择 `[Shared Core, Safety Critical]`，为每个 Profile 各设计两项不能被另一 Profile 替代的门禁与负控。
+- **练习一：设计验证。** 给一个修改共享路径解析且含一处 `unsafe` 的 20 行补丁做五维风险评估，选择 `[shared_core, safety_critical]`，为每个 Profile 各设计两项不能被另一 Profile 替代的门禁与负控。
 - **练习二：三套 DoD。** 将同一行为问题分别放入 Low（只改测试说明）、Medium（局部实现修复）和 High（随默认 provider 发布），写出每层 Pass/N/A/Unverified 的差别，不允许用测试总数抵消恢复门禁。
 - **练习三：例外生命周期。** 构造一个 runner 不可用的 Unverified 项，先证明它阻断 Direct；再写 LimitedWithWaiver，模拟到期时“补证 Pass”“发现 Fail”“重新评估”三条路径，并保持历史状态不被重写。
 
@@ -284,4 +284,4 @@ DoD 使证据和缺口可见，不能消除未知。tier/Profile 不是形式化
 
 ### 版本演化说明
 
-论文基线为 **arXiv:2608.07135**；规则事实固定在 **d8bee62c1ddc227d5e4385d80bbf6d7dee266a41**；本章核验截止日为 **2026-08-14**。工具与 policy 会演化，但后续附录和 pipeline 应把 **Mechanical、Local Behavior、Shared Core、Safety Critical、Release Default** 作为五个可组合规范接口，并保持 `Pass/Fail/Unverified/N/A`、`Approve/Reject/Waive` 与 `Direct/LimitedWithWaiver` 的语义一致。
+论文基线为 **arXiv:2608.07135**；规则事实固定在 **d8bee62c1ddc227d5e4385d80bbf6d7dee266a41**；核验截止 **2026-08-14**。`chapter-13/profile-schema-v1` 固定五个可组合 enum：`mechanical`、`local_behavior`、`shared_core`、`safety_critical`、`release_default`；并保持 `Pass/Fail/Unverified/N/A`、`Approve/Reject/Waive`、`Direct/LimitedWithWaiver` 语义一致。
