@@ -1,0 +1,65 @@
+:root {
+  --content-max-width: 860px;
+  --evidence-border: #3973ac;
+  --synthesis-border: #8a5a9b;
+}
+
+html {
+  font-size: 17px;
+}
+
+body,
+.content main {
+  font-family: "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  line-height: 1.78;
+}
+
+.content main {
+  max-width: var(--content-max-width);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0.015em;
+  line-height: 1.35;
+}
+
+code,
+pre {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+blockquote {
+  border-left: 4px solid var(--evidence-border);
+  padding: 0.3rem 1rem;
+}
+
+table {
+  display: table;
+  width: 100%;
+}
+
+.evidence,
+.synthesis {
+  border-left: 4px solid var(--evidence-border);
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+}
+
+.synthesis {
+  border-left-color: var(--synthesis-border);
+}
+
+@media print {
+  .content main {
+    max-width: none;
+  }
+
+  pre,
+  table,
+  .mermaid {
+    break-inside: avoid;
+  }
+}

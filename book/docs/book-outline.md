@@ -1,0 +1,58 @@
+# 《AI Coding 时代的 Rust 软件迁移工程》目录与证据分配
+
+## 写作主线
+
+全书回答同一个问题：如何把一个不可完整枚举、又不能轻易中断的遗留系统，重建为可验证、可渐进替换、可回退的 Rust 实现，并让 Coding Agent 在其中承担受控的实现搜索工作。
+
+论证链按以下顺序推进：
+
+```text
+observable behavior
+  -> behavior contract
+  -> clean context and Rust architecture
+  -> small change package
+  -> static, test, differential and fuzz gates
+  -> human ownership
+  -> staged rollout, monitoring and rollback
+```
+
+## 章节依赖与规范证据位置
+
+| 章 | 核心问题 | 前置 | 规范证据/代码的唯一展开位置 |
+|---|---|---|---|
+| 1 | 为什么迁移不是翻译 | 无 | AI-Native Migration 总模型 |
+| 2 | uutils 能证明什么 | 1 | 论文 P1-P3、星形架构、测试与部署事实 |
+| 3 | 如何写行为契约 | 1-2 | 可观察行为五元组、兼容性矩阵 |
+| 4 | Agent 能读什么 | 3 | clean-room 许可边界与上下文清单 |
+| 5 | Rust 骨架如何承载行为 | 3-4 | workspace、uucore、`UResult` 错误模型 |
+| 6 | 为什么补丁必须小 | 3-5 | Agent Atomicity 与单一行为意图 |
+| 7 | 静态门禁防什么 | 5-6 | rustc、Clippy、rustfmt、cargo-deny 分层 |
+| 8 | 测试层如何分工 | 3,7 | unit/integration/external suite 三层模型 |
+| 9 | 如何把旧实现变成 oracle | 3,8 | `CommandResult` 与 `compare_result` |
+| 10 | 差异如何变成永久资产 | 8-9 | Discover-Minimize-Codify-Repair-Verify |
+| 11 | 人类责任不可外包在哪里 | 4,6-10 | AI policy 责任矩阵 |
+| 12 | Agent 应交付什么 | 6-11 | Change Package 数据结构 |
+| 13 | 怎样判定完成 | 7-12 | Definition of Done 门禁图 |
+| 14 | 如何降低替换爆炸半径 | 13 | shadow/canary/monitor/rollback 状态机 |
+| 15 | 生产事实如何修正方法 | 14 | Ubuntu 时间线、安全审计与 `cp/mv/rm` 边界 |
+| 16 | 怎样把方法投入项目 | 全部 | 十阶段迁移 pipeline 与采用策略 |
+
+## 去重规则
+
+- `AGENTS.md` 的 clean-room 条款在第 4 章完整解释；第 11 章只引用责任条款。
+- `CONTRIBUTING.md` 的 Rust Safety Profile 在第 5 章解释；附录 D 只给可复制清单。
+- `fuzz/uufuzz/src/lib.rs` 的结果比较流程在第 9 章展开；第 10 章讨论失败生命周期，不重复代码。
+- Ubuntu 的完整时间线只在第 15 章；第 14 章只提炼部署状态机。
+- 全书定义在第 1 章；第 16 章把它转换为组织实施流程，不重复概念辩护。
+
+## 读者路径
+
+- 实现者：1 -> 3 -> 5 -> 7 -> 8 -> 9 -> 10 -> 13 -> 附录 D/E。
+- 迁移负责人：1 -> 2 -> 3 -> 12 -> 13 -> 14 -> 15 -> 16 -> 附录 A/B。
+- AI 工程治理者：1 -> 4 -> 6 -> 11 -> 12 -> 13 -> 16 -> 附录 B/C/E。
+
+## 篇幅分配
+
+- 正文各章以任务契约 `book.spec.md` 为最终权威：每章 3,500-5,500 字符。
+- 章节不以触及下限为目标；篇幅服从证据密度、模式提炼与失效边界，不用重复结论填充。
+- 前言：4,000-6,000 字符；附录合计 30,000-35,000 字符。

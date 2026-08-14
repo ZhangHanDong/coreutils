@@ -1,0 +1,36 @@
+Automatic pre-review gate
+Date: 2026-08-14 (Asia/Shanghai)
+Source baseline: d8bee62c1ddc227d5e4385d80bbf6d7dee266a41
+Paper baseline: arXiv:2608.07135
+
+Command:
+BOOK_SOURCE_ROOT=/Users/zhangalex/Work/Projects/consult/coreutils bash scripts/check-book.sh --root . --pre-review
+
+Result:
+PASS: book quality gate (pre-review)
+
+Command:
+tests/test_book_quality.sh
+
+Result:
+PASS: book quality gate rejects all contract violations
+
+Command:
+tests/test_mdbook_build.sh
+
+Result:
+PASS: mdBook renders the complete manuscript
+
+Note:
+mdbook-mermaid reports that it was built against mdBook 0.5.0 while the installed mdBook is 0.5.3. The preprocessor completed successfully, Mermaid blocks and hashed runtime assets were present in the rendered HTML, and this is retained as a non-blocking tool-version warning.
+
+Post-review visual verification:
+- Home page: 32 sidebar links, 1 Mermaid block -> 1 SVG, no horizontal overflow.
+- Ubuntu timeline: 1 Mermaid block -> 1 SVG, no Mermaid error marker, no console error.
+- Pipeline and appendices A/C/E: all Mermaid block counts matched SVG counts; tables did not create document-level horizontal overflow.
+- print.html: 24 H1 sections, 23 Mermaid blocks -> 23 SVGs, zero Mermaid error markers, zero console errors.
+
+Regression added during visual verification:
+- mdBook 0.5.3 no longer renders individual theme elements with ids expected by the mdbook-mermaid 0.5.0 initializer.
+- `mermaid-init.js` now uses null-safe event registration.
+- `tests/test_mdbook_build.sh` asserts the null-safe initializer and complete rendered artifacts.

@@ -1,0 +1,62 @@
+name: Deploy AI Rust Migration Book
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "book/**"
+      - ".github/workflows/deploy-ai-rust-book.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: "0.5.3"
+
+      - name: Install Mermaid preprocessor
+        run: cargo install mdbook-mermaid --version 0.17.0 --locked
+
+      - name: Verify book quality
+        run: bash book/tests/test_book_quality.sh
+
+      - name: Build book
+        run: bash book/tests/test_mdbook_build.sh
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: book/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

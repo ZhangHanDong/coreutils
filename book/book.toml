@@ -1,0 +1,25 @@
+[book]
+title = "AI Coding 时代的 Rust 软件迁移工程"
+authors = ["Zhang HanDong"]
+description = "从 uutils 提炼的可验证重写方法"
+language = "zh-CN"
+src = "src"
+
+[build]
+build-dir = "build"
+create-missing = false
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+additional-css = ["theme/book.css"]
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+git-repository-url = "https://github.com/ZhangHanDong/coreutils"
+edit-url-template = "https://github.com/ZhangHanDong/coreutils/edit/main/book/{path}"
+site-url = "/coreutils/"
+
+[output.html.print]
+enable = true
