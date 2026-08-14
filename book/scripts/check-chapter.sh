@@ -16,7 +16,7 @@ fail() {
 
 chapter=$1
 case "$chapter" in
-    *'/util/gnu-patches/'*|*'/gnu/'*)
+    util/gnu-patches/*|./util/gnu-patches/*|*/util/gnu-patches/*|gnu/*|./gnu/*|*/gnu/*)
         fail "refusing prohibited chapter path: $chapter"
         ;;
 esac
@@ -44,8 +44,9 @@ require_line() {
 
 grep -F '> **定位**' "$chapter" >/dev/null || fail "missing positioning anchor: $chapter"
 grep -F '```mermaid' "$chapter" >/dev/null || fail "missing Mermaid diagram: $chapter"
-evidence_count=$(grep -Eo '\[E[1-4]-[A-Z0-9._-]+\]' "$chapter" | sort -u | wc -l | tr -d ' ')
-[ "$evidence_count" -ge 3 ] || fail "fewer than 3 evidence references: $chapter"
+primary_evidence_count=$(grep -Eo '\[E[1-3]-[A-Z0-9._-]+\]' "$chapter" | sort -u | wc -l | tr -d ' ')
+[ "$primary_evidence_count" -ge 3 ] || fail "fewer than 3 primary evidence references: $chapter"
+[ "$primary_evidence_count" -le 6 ] || fail "more than 6 primary evidence references: $chapter"
 grep -F '<!-- source:' "$chapter" >/dev/null || fail "missing evidence comment: $chapter"
 require_line '### 版本演化说明' 'version evolution note'
 require_line '## 模式提炼' 'pattern extraction section'
@@ -68,6 +69,17 @@ exercise_count=$(awk '
 
 require_line '## 能证明什么／不能证明什么' 'proof boundary section'
 grep -F '| 能证明什么 | 不能证明什么 |' "$chapter" >/dev/null || fail "missing proof boundary table: $chapter"
+proof_boundary_rows=$(awk '
+    $0 == "| 能证明什么 | 不能证明什么 |" { inside = 1; next }
+    inside && /^## / { exit }
+    inside && /^\|/ {
+        row = $0
+        gsub(/[|[:space:]:-]/, "", row)
+        if (row != "") count++
+    }
+    END { print count + 0 }
+' "$chapter")
+[ "$proof_boundary_rows" -ge 1 ] || fail "missing substantive proof boundary row: $chapter"
 
 chars=$(wc -m < "$chapter" | tr -d ' ')
 [ "$chars" -ge "$min_chars" ] || fail "chapter below configured character budget ($chars < $min_chars): $chapter"

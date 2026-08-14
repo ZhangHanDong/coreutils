@@ -15,7 +15,8 @@ trap 'rm -rf "$TMP_ROOT"' EXIT HUP INT TERM
 
 make_fixture() {
     fixture=$1
-    mkdir -p "$fixture/src/chapters" "$fixture/src/appendices" "$fixture/reviews" "$fixture/source-repo"
+    mkdir -p "$fixture/src/chapters" "$fixture/src/appendices" "$fixture/reviews" "$fixture/source-repo" "$fixture/specs"
+    cp "$BOOK_ROOT"/specs/ch*.spec.md "$fixture/specs/"
     : > "$fixture/source-repo/AGENTS.md"
     {
         echo '# Summary'
@@ -32,7 +33,10 @@ make_fixture() {
             i=$((i + 1))
         done
     } > "$fixture/src/SUMMARY.md"
-    echo '# 前言' > "$fixture/src/preface.md"
+    {
+        echo '# 前言'
+        awk 'BEGIN { for (n = 0; n < 9000; n++) printf "x"; print "" }'
+    } > "$fixture/src/preface.md"
     i=1
     while [ "$i" -le 16 ]; do
         chapter="$fixture/src/chapters/ch$(printf '%02d' "$i").md"
@@ -45,7 +49,7 @@ make_fixture() {
             echo '    A --> B'
             echo '```'
             echo
-            echo '[E1-PAPER] [E2-SOURCE] [E4-SYNTHESIS]'
+            echo '[E1-PAPER] [E2-SOURCE] [E2-TEST] [E4-SYNTHESIS]'
             echo '<!-- source: AGENTS.md -->'
             echo
             echo '## 模式提炼'
@@ -91,7 +95,10 @@ make_fixture() {
     done
     i=1
     while [ "$i" -le 6 ]; do
-        printf '# 附录 %s\n' "$i" > "$fixture/src/appendices/app$i.md"
+        {
+            printf '# 附录 %s\n' "$i"
+            awk 'BEGIN { for (n = 0; n < 8500; n++) printf "x"; print "" }'
+        } > "$fixture/src/appendices/app$i.md"
         i=$((i + 1))
     done
     : > "$fixture/reviews/automatic-gate.txt"
@@ -118,9 +125,35 @@ expect_fail() {
     fi
 }
 
+expect_chapter_fail() {
+    name=$1
+    pattern=$2
+    chapter=$3
+    stderr="$TMP_ROOT/$name.stderr"
+    if "$CHAPTER_CHECK" "$chapter" >/dev/null 2>"$stderr"; then
+        echo "FAIL: $name unexpectedly passed" >&2
+        exit 1
+    fi
+    if ! grep -F "$pattern" "$stderr" >/dev/null; then
+        echo "FAIL: $name did not report expected pattern: $pattern" >&2
+        sed -n '1,120p' "$stderr" >&2
+        exit 1
+    fi
+}
+
 valid="$TMP_ROOT/valid"
 make_fixture "$valid"
 BOOK_SOURCE_ROOT="$valid/source-repo" BOOK_MIN_CHARS=1 BOOK_MAX_CHARS=20000 "$CHECK" --root "$valid" >/dev/null
+
+expect_chapter_fail relative-gnu-patches 'refusing prohibited chapter path' 'util/gnu-patches/not-a-chapter.md'
+expect_chapter_fail relative-gnu-directory 'refusing prohibited chapter path' 'gnu/not-a-chapter.md'
+expect_chapter_fail absolute-gnu-patches 'refusing prohibited chapter path' '/tmp/util/gnu-patches/not-a-chapter.md'
+expect_chapter_fail absolute-gnu-directory 'refusing prohibited chapter path' '/tmp/gnu/not-a-chapter.md'
+
+root_specs="$TMP_ROOT/root-specs"
+make_fixture "$root_specs"
+sed -i '' 's/10,000–12,000/1–2/' "$root_specs/specs/ch01-behavior-reconstruction.spec.md"
+expect_fail root-specific-spec 'chapter above configured character budget' "$root_specs"
 
 pre_review="$TMP_ROOT/pre-review"
 make_fixture "$pre_review"
@@ -185,6 +218,46 @@ missing_artifact="$TMP_ROOT/missing-artifact"
 make_fixture "$missing_artifact"
 sed -i '' '/^## 可复用工件$/,/^## 练习$/{ /^## 练习$/!d; }' "$missing_artifact/src/chapters/ch05.md"
 expect_fail missing-artifact 'missing reusable artifact section' "$missing_artifact"
+
+missing_counterexample="$TMP_ROOT/missing-counterexample"
+make_fixture "$missing_counterexample"
+sed -i '' '/^## 反例$/,/^## 可复用工件$/{ /^## 可复用工件$/!d; }' "$missing_counterexample/src/chapters/ch06.md"
+expect_fail missing-counterexample 'missing counterexample section' "$missing_counterexample"
+
+missing_evidence_comment="$TMP_ROOT/missing-evidence-comment"
+make_fixture "$missing_evidence_comment"
+sed -i '' '/^<!-- source: AGENTS.md -->$/d' "$missing_evidence_comment/src/chapters/ch07.md"
+expect_fail missing-evidence-comment 'missing evidence comment' "$missing_evidence_comment"
+
+missing_proof_table_row="$TMP_ROOT/missing-proof-table-row"
+make_fixture "$missing_proof_table_row"
+sed -i '' '/^| 门禁夹具结构完整 | 正文事实真实 |$/d' "$missing_proof_table_row/src/chapters/ch08.md"
+expect_fail missing-proof-table-row 'missing substantive proof boundary row' "$missing_proof_table_row"
+
+too_few_primary_evidence="$TMP_ROOT/too-few-primary-evidence"
+make_fixture "$too_few_primary_evidence"
+sed -i '' 's/\[E2-TEST\] //' "$too_few_primary_evidence/src/chapters/ch09.md"
+expect_fail too-few-primary-evidence 'fewer than 3 primary evidence references' "$too_few_primary_evidence"
+
+e4_only_evidence="$TMP_ROOT/e4-only-evidence"
+make_fixture "$e4_only_evidence"
+sed -i '' 's/\[E1-PAPER\] \[E2-SOURCE\] \[E2-TEST\] \[E4-SYNTHESIS\]/[E4-ONE] [E4-TWO] [E4-THREE]/' "$e4_only_evidence/src/chapters/ch10.md"
+expect_fail e4-only-evidence 'fewer than 3 primary evidence references' "$e4_only_evidence"
+
+too_many_primary_evidence="$TMP_ROOT/too-many-primary-evidence"
+make_fixture "$too_many_primary_evidence"
+sed -i '' 's/\[E1-PAPER\] \[E2-SOURCE\] \[E2-TEST\] \[E4-SYNTHESIS\]/[E1-PAPER] [E1-SECOND] [E1-THIRD] [E2-SOURCE] [E2-TEST] [E2-THIRD] [E3-PRODUCTION]/' "$too_many_primary_evidence/src/chapters/ch11.md"
+expect_fail too-many-primary-evidence 'more than 6 primary evidence references' "$too_many_primary_evidence"
+
+whole_book_under_budget="$TMP_ROOT/whole-book-under-budget"
+make_fixture "$whole_book_under_budget"
+sed -i '' 's/x//g' "$whole_book_under_budget/src/preface.md" "$whole_book_under_budget/src/appendices"/*.md
+expect_fail whole-book-under-budget 'book below configured character budget' "$whole_book_under_budget"
+
+whole_book_over_budget="$TMP_ROOT/whole-book-over-budget"
+make_fixture "$whole_book_over_budget"
+awk 'BEGIN { for (n = 0; n < 60000; n++) printf "x"; print "" }' >> "$whole_book_over_budget/src/preface.md"
+expect_fail whole-book-over-budget 'book above configured character budget' "$whole_book_over_budget"
 
 reviews="$TMP_ROOT/reviews"
 make_fixture "$reviews"

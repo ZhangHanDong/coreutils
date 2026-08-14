@@ -19,6 +19,8 @@ done
 
 SRC_DIR="$BOOK_ROOT/src"
 SUMMARY="$SRC_DIR/SUMMARY.md"
+MIN_BOOK_CHARS=250000
+MAX_BOOK_CHARS=300000
 
 fail() {
     echo "book quality error: $*" >&2
@@ -60,8 +62,14 @@ echo "$chapters" | while IFS= read -r target; do
         [ "$MODE" = draft ] && continue
         fail "missing SUMMARY target: $target"
     }
-    BOOK_CHAPTER_SPEC_ROOT="$SCRIPT_DIR/../specs" "$CHAPTER_CHECK" "$file" >/dev/null
+    BOOK_CHAPTER_SPEC_ROOT="$BOOK_ROOT/specs" "$CHAPTER_CHECK" "$file" >/dev/null
 done
+
+manuscript_chars=$(summary_targets | while IFS= read -r target; do
+    wc -m < "$SRC_DIR/$target"
+done | awk '{ total += $1 } END { print total + 0 }')
+[ "$manuscript_chars" -ge "$MIN_BOOK_CHARS" ] || fail "book below configured character budget ($manuscript_chars < $MIN_BOOK_CHARS)"
+[ "$manuscript_chars" -le "$MAX_BOOK_CHARS" ] || fail "book above configured character budget ($manuscript_chars > $MAX_BOOK_CHARS)"
 
 if grep -R -n -E '(^|[^A-Za-z])(TODO|TBD)([^A-Za-z]|$)|待补|占位文本' "$SRC_DIR" --include='*.md' >/tmp/ai-rust-book-placeholders.$$ 2>/dev/null; then
     sed 's/^/placeholder content: /' /tmp/ai-rust-book-placeholders.$$ >&2
