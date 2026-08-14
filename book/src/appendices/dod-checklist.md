@@ -77,3 +77,134 @@ closure_evidence: "到期前需要补充的证据"
 ```
 
 豁免不能永久把未知变成已知。到期时只有三种合法结果：补齐证据并转为 `Pass`，发现问题转为 `Fail`，或由有权角色重新评估并创建新的限时决定。DoD 因而不是静态打勾表，而是迁移状态能否晋级的证据门。
+
+## 三个 DoD 判定级别
+
+为了让团队在不同阶段说清“完成到哪里”，本附录定义三个**判定级别**：L1 Evidence Ready、L2 Change Ready、L3 Release Ready。它们不是第六、第七种 Profile，也不按风险替代五种可组合 Profile；每一级都对 `selected_profiles` 的要求并集做一次更严格的状态判定。
+
+### L1 — Evidence Ready：可以进入实现评审
+
+L1 证明问题、边界和验证入口已经成形，不证明补丁可以合并。适用于第 3—10 章从差异发现到永久回归的交接。
+
+| L1 要求 | 通过条件 | 常见失败返回 |
+|---|---|---|
+| 契约可裁决 | 行为六元组每一项有比较策略，非目标与允许差异明确 | 回第 3 章补观测或找行为所有者 |
+| 上下文合法 | Context Manifest 已批准并能把实际访问追到授权 | 回第 4 章收窄/审批，污染则隔离 |
+| 基线可重放 | 候选、oracle、平台、fixture、命令、seed 固定 | 回第 9 章修 harness |
+| 失败先行 | RED run 在修复前稳定失败，失败字段正是契约字段 | 回第 8 章重写测试 |
+| 风险已分类 | `selected_profiles` 与 Safety 维度已由触发条件选择 | 回第 13 章补影响矩阵 |
+
+L1 输出至少为 `Behavior Contract + Context Manifest + RED run + risk classification`。如果任务是调查而非实现，L1 也可以作为合法终点：例如 oracle 不稳定或平台不可用时，团队保留最小证据并停止，不强行生成代码。
+
+### L2 — Change Ready：可以合并原子变更
+
+L2 在 L1 之上证明候选变更、永久测试和人类责任形成一个可接受/拒绝/撤销的 Change Package。它对应代码合并门，而不是生产默认门。
+
+| L2 要求 | 通过条件 | 常见失败返回 |
+|---|---|---|
+| 原子性 | 一个行为意图；机械与语义提交可分辨；diff 未越界 | 回第 6 章拆任务 |
+| red/green | 同一测试、fixture 与比较器在基线红、候选绿 | 回实现或测试层，不允许换 oracle 掩盖差异 |
+| Profile 并集 | 所有选中 Profile 的适用条目均 Pass/N/A | Fail 回修；Unverified 默认阻断 |
+| 影响覆盖 | 直接/共享消费者、feature、target 和平台矩阵与风险相称 | 回第 5、7、8 章补覆盖 |
+| 独立评审 | 人类能解释实现、不变量、证据、未知项和 Git 回退 | 回第 12 章补包或拒绝 |
+
+L2 输出是不可拆分的 Change Package：契约、manifest 关闭/暂停状态、最小 diff、永久回归、运行账本、风险说明、评审决定与原子代码回退。`release_default` 可在 L2 被选中以提前准备要求，但生产观察尚未发生时，其运行项仍为 `Unverified`，所以只能说“代码可供候选产物构建”，不能说“发布完成”。
+
+### L3 — Release Ready：可以晋级或维持默认
+
+L3 只适用于真实 provider、默认路径、广泛流量或系统关键部署，必须选择 `release_default`，并保留其他已命中的 Profile。它证明的是特定 cohort、版本和观察窗口下可以晋级，不是永久保证。
+
+| L3 要求 | 通过条件 | 常见失败返回 |
+|---|---|---|
+| 真实产物一致 | shadow、canary 与回滚使用同一签名 artifact/config | 回构建与 provenance 门 |
+| 代表性 | cohort 覆盖契约定义的 workload、平台和风险维度 | 留在当前状态并补样本 |
+| 门限与所有者 | hard/soft 指标、窗口、kill switch、值班角色预先固定 | 不得开始流量 |
+| 回滚演练 | provider/包/配置切回满足恢复目标，状态恢复另有证明 | 回第 14 章修恢复路径 |
+| 生产反例闭环 | 差异冻结、脱敏、最小化并进入永久回归 | 回第 10、12 章，不只修线上 |
+| 时间边界 | 结论记录 artifact、cohort、开始/结束与 `as of` | 证据过期后重新判定 |
+
+L3 的“Pass”只授权下一次预定晋级或在当前状态继续，不授权跳过中间 cohort。任何 hard gate 越界先执行 kill switch，再讨论根因；发布负责人不能等待 Agent 生成补丁后才回退。不可逆副作用还要有数据恢复证明，provider 切回只能恢复未来执行路径，不能自动恢复已经删除或覆盖的状态。
+
+```mermaid
+flowchart LR
+    L1["L1 Evidence Ready"] -->|Change Package 实现与复核| L2["L2 Change Ready"]
+    L2 -->|签名产物 + shadow/canary| L3["L3 Release Ready"]
+    L3 -->|生产反例| L1
+    L2 -->|契约或范围改变| L1
+    L3 -->|hard gate| RB["Rollback"]
+    RB --> L1
+```
+
+## 判定记录模板
+
+```yaml
+dod_decision:
+  task_id: "MIG-UTILITY-001"
+  change_package: "CP-MIG-UTILITY-001@sha256:..."
+  requested_level: "L1 | L2 | L3"
+  selected_profiles:
+    - "local_behavior"
+    - "safety_critical"
+    - "release_default"
+  profile_schema_ref: "chapter-13/profile-schema-v1"
+  evaluated_requirements:
+    - {id: "CONTRACT-01", status: "Pass", evidence: ["BC-001"], owner: "..."}
+    - {id: "SAFE-01", status: "Unverified", evidence: [], owner: "..."}
+  decision: "Pass | Fail | Blocked | PassWithException"
+  authorized_transition: "None | implementation-review | merge | canary-C3"
+  artifact_scope: "commit/artifact/config/cohort"
+  decided_by: ["behavior owner", "required specialist", "release owner if L3"]
+  decided_at: "RFC3339"
+  valid_until: "time or next baseline change"
+  exceptions: []
+```
+
+判定必须引用第 13 章 schema 版本，避免不同章节复制同名 Profile 后逐渐漂移。新的 requirement 先进入规范接口，再由附录模板引用；不能只在某个团队副本里加一行并声称全书 DoD 已改变。
+
+## 完整例外记录与处置
+
+例外只允许在失败模式可限定、补偿控制可执行且回滚可靠时使用。行为契约无法裁决、clean-room 污染、kill switch 不可用、不可逆数据恢复未证明等基础条件，不应通过普通豁免跨越。组织应列出 `non_waivable_requirements`，并由治理负责人变更该列表。
+
+```yaml
+exception_record:
+  exception_id: "EXC-PLATFORM-2026-004"
+  task_id: "MIG-SHARED-008"
+  requested_level: "L2"
+  requirement_ids: ["SHARED-01/platform-windows-runtime"]
+  observed_status: "Unverified"
+  reason: "目标 Windows runner 在本发布窗口不可用；仅完成 compile check"
+  evidence_of_constraint: ["RUNNER-INC-774", "COMPILE-WIN-008"]
+  bounded_scope:
+    artifact: "candidate commit sha"
+    platforms: ["linux", "macOS"]
+    excluded: ["windows runtime support claim"]
+    traffic: "N/A; no default release"
+  worst_case: "Windows 调用者可能出现未观测的路径/错误差异"
+  probability_basis: "未知；不得写 low"
+  compensating_controls:
+    - "文档与 package metadata 明确 Windows runtime Unverified"
+    - "阻止 release_default profile 与 Windows artifact 发布"
+    - "Windows runner 恢复后自动创建验证任务"
+  rollback: "撤销共享变更；兼容接口在撤销顺序中最后移除"
+  detection: "Windows CI 恢复事件 + owner 每周检查"
+  owner: "shared-core owner"
+  approvers: ["platform reviewer", "migration lead"]
+  approved_at: "RFC3339"
+  expires_at: "2026-09-01T00:00:00Z"
+  closure_conditions:
+    - "真实 Windows 进程级矩阵 Pass，转正常完成"
+    - "发现差异则转 Fail 并撤销/修复"
+  current_state: "Active"
+  supersedes: null
+  closure_evidence: []
+```
+
+例外评审要问：范围是否技术上被限制，而不只是文档承诺；监控是否能在损害扩大前发现；回滚是否处理已经发生的状态；到期时谁会被自动通知；若验证永远不可用，产品是否应正式缩小支持范围。`probability_basis` 没有数据时必须写未知，不能为了批准流程主观填“低概率”。
+
+例外状态为 `Proposed -> Active -> Closed`，也可以在新证据出现时变为 `Revoked`。续期必须创建新记录并引用旧记录，重新评估最坏影响、补偿控制和证据；直接修改 `expires_at` 会破坏决策历史。关闭时引用补齐的 run 或撤销证据，并让受限发布配置回到正常策略。
+
+## 三个级别的使用边界
+
+“L1 已完成”不能出现在合并结论中代替 L2，“L2 已完成”不能出现在 rollout 报告中代替 L3。反过来，L3 事故也不意味着之前 L2 一定错误：可能是 cohort 不具代表性、监控缺口或生产新环境；真正的闭环是把反例送回 L1，更新契约与永久测试，再生成新的 L2/L3 证据。
+
+团队可以为纯文档机械任务停在 L2 并只选择 `mechanical`；局部行为任务通常走 L1/L2；默认迁移必须走完 L1/L2/L3。级别描述状态，Profile 描述风险维度，两者形成二维判定，既避免“所有任务都跑最高成本”，也避免“高风险任务用低风险模板打勾”。
