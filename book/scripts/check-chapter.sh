@@ -20,6 +20,13 @@ case "$chapter" in
         fail "refusing prohibited chapter path: $chapter"
         ;;
 esac
+canonical_chapter=$(realpath "$chapter") || fail "unable to canonicalize chapter path: $chapter"
+case "$canonical_chapter" in
+    */util/gnu-patches/*|*/gnu/*)
+        fail "refusing prohibited chapter path: $chapter"
+        ;;
+esac
+chapter=$canonical_chapter
 [ -f "$chapter" ] || fail "missing chapter: $chapter"
 
 chapter_name=$(basename "$chapter")

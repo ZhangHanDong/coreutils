@@ -150,6 +150,19 @@ expect_chapter_fail relative-gnu-directory 'refusing prohibited chapter path' 'g
 expect_chapter_fail absolute-gnu-patches 'refusing prohibited chapter path' '/tmp/util/gnu-patches/not-a-chapter.md'
 expect_chapter_fail absolute-gnu-directory 'refusing prohibited chapter path' '/tmp/gnu/not-a-chapter.md'
 
+path_normalization="$TMP_ROOT/path-normalization"
+mkdir -p "$path_normalization/util/gnu-patches"
+cp "$valid/src/chapters/ch01.md" "$path_normalization/util/gnu-patches/ch01.md"
+expect_chapter_fail dot-component-gnu-patches 'refusing prohibited chapter path' "$path_normalization/util/./gnu-patches/ch01.md"
+expect_chapter_fail repeated-separator-gnu-patches 'refusing prohibited chapter path' "$path_normalization/util//gnu-patches/ch01.md"
+
+symlink_target="$TMP_ROOT/symlink-target/gnu/ch01.md"
+symlink_escape="$TMP_ROOT/symlink-escape/ch01.md"
+mkdir -p "$(dirname "$symlink_target")" "$(dirname "$symlink_escape")"
+cp "$valid/src/chapters/ch01.md" "$symlink_target"
+ln -s "$symlink_target" "$symlink_escape"
+expect_chapter_fail symlink-gnu-escape 'refusing prohibited chapter path' "$symlink_escape"
+
 root_specs="$TMP_ROOT/root-specs"
 make_fixture "$root_specs"
 sed -i '' 's/10,000–12,000/1–2/' "$root_specs/specs/ch01-behavior-reconstruction.spec.md"
